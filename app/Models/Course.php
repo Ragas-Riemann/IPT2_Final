@@ -11,6 +11,7 @@ class Course extends Model
 
     protected $fillable = [
         'name',
+        'description',
         'status', // Open/Closed
         'enrolled_count',
         'department_id',

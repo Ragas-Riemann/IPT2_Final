@@ -16,14 +16,12 @@ export default function SystemSettings({ embed = false }){
   const [deptCode, setDeptCode] = useState('');
   const [deptDescription, setDeptDescription] = useState('');
   const [deptDean, setDeptDean] = useState('');
-  const [deptStudentsCount, setDeptStudentsCount] = useState('');
-  const [deptFacultyCount, setDeptFacultyCount] = useState('');
   const [editingDeptId, setEditingDeptId] = useState(null);
   
   // Course form state
   const [courseName, setCourseName] = useState('');
+  const [courseDescription, setCourseDescription] = useState('');
   const [courseStatus, setCourseStatus] = useState('Open');
-  const [courseEnrolled, setCourseEnrolled] = useState('');
   const [editingCourseId, setEditingCourseId] = useState(null);
 
   useEffect(() => {
@@ -96,8 +94,7 @@ export default function SystemSettings({ embed = false }){
         code: deptCode || null,
         description: deptDescription || null,
         dean: deptDean,
-        students_count: Number(deptStudentsCount||0),
-        faculty_count: Number(deptFacultyCount||0)
+        // students_count and faculty_count are now calculated automatically
       };
       if (editingDeptId){
         await axios.put(`/api/departments/${editingDeptId}`, payload);
@@ -110,8 +107,6 @@ export default function SystemSettings({ embed = false }){
       setDeptCode(''); 
       setDeptDescription(''); 
       setDeptDean(''); 
-      setDeptStudentsCount(''); 
-      setDeptFacultyCount(''); 
       setEditingDeptId(null);
       await fetchDepartments();
     }catch(e){
@@ -151,8 +146,9 @@ export default function SystemSettings({ embed = false }){
         }
         const payload = { 
           name: courseName, 
+          description: courseDescription || null,
           status: courseStatus, 
-          enrolled_count: Number(courseEnrolled||0), 
+          // enrolled_count is now calculated automatically, don't send it
           department_id: selectedDepartment.id 
         };
       if (editingCourseId){
@@ -163,8 +159,8 @@ export default function SystemSettings({ embed = false }){
         setMessage('Course added');
       }
       setCourseName(''); 
+      setCourseDescription('');
       setCourseStatus('Open'); 
-      setCourseEnrolled(''); 
       setEditingCourseId(null);
       await fetchCoursesByDepartment(selectedDepartment.id);
     }catch(e){
@@ -239,8 +235,6 @@ export default function SystemSettings({ embed = false }){
             setDeptCode(d.code||''); 
             setDeptDescription(d.description||''); 
             setDeptDean(d.dean||''); 
-            setDeptStudentsCount(String(d.students_count||0)); 
-            setDeptFacultyCount(String(d.faculty_count||0)); 
           } 
         }, 'Edit'),
         React.createElement('button', { 
@@ -257,6 +251,9 @@ export default function SystemSettings({ embed = false }){
   const courseCard = (c) => (
     React.createElement('div', { key: c.id, className: 'card' },
       React.createElement('div', { className: 'card-header' }, React.createElement('h2', null, c.name)),
+      c.description && React.createElement('div', { style: { marginBottom: '8px', color: '#6b7280', fontSize: '0.875rem' } }, 
+        c.description.length > 100 ? `${c.description.substring(0, 100)}...` : c.description
+      ),
       React.createElement('div', { style: { marginBottom: '8px', color: '#6b7280' } }, `Status: ${c.status || 'Open'}`),
       React.createElement('div', { style: { marginBottom: '12px', color: '#6b7280' } }, `Enrolled: ${c.enrolled_count||0} Students`),
       // Only admin can edit/delete courses
@@ -266,8 +263,8 @@ export default function SystemSettings({ embed = false }){
           onClick: () => { 
             setEditingCourseId(c.id); 
             setCourseName(c.name); 
+            setCourseDescription(c.description||''); 
             setCourseStatus(c.status||'Open'); 
-            setCourseEnrolled(String(c.enrolled_count||0)); 
           } 
         }, 'Edit'),
         React.createElement('button', { 
@@ -283,7 +280,7 @@ export default function SystemSettings({ embed = false }){
     React.createElement(React.Fragment, null,
       React.createElement('div', { className: 'card' },
         React.createElement('div', { className: 'card-header' }, 
-          React.createElement('h2', null, 'System Settings - Departments')
+          React.createElement('h2', null, 'Departments and Courses')
         ),
         // Form - only show for admin
         (user && user.role === 'admin') && React.createElement('form', { className: 'post-form', onSubmit: handleDepartmentSubmit },
@@ -293,8 +290,9 @@ export default function SystemSettings({ embed = false }){
           React.createElement('input', { type: 'text', placeholder: 'Code (e.g., CSP, BAP)', value: deptCode, onChange: e => setDeptCode(e.target.value), maxLength: 10 }),
           React.createElement('textarea', { placeholder: 'Description (optional)', value: deptDescription, onChange: e => setDeptDescription(e.target.value), rows: 3, style: { resize: 'vertical' } }),
           React.createElement('input', { type: 'text', placeholder: 'Dean (optional)', value: deptDean, onChange: e => setDeptDean(e.target.value) }),
-          React.createElement('input', { type: 'number', placeholder: 'Students Count (optional)', value: deptStudentsCount, onChange: e => setDeptStudentsCount(e.target.value) }),
-          React.createElement('input', { type: 'number', placeholder: 'Faculty Count (optional)', value: deptFacultyCount, onChange: e => setDeptFacultyCount(e.target.value) }),
+          React.createElement('div', { style: { padding: '8px', background: '#f3f4f6', borderRadius: '4px', fontSize: '0.875rem', color: '#6b7280' } }, 
+            'Students and Faculty counts are automatically calculated based on profiles that have been filled out.'
+          ),
           React.createElement('div', { className: 'form-actions' },
             React.createElement('button', { type: 'submit', disabled: loading }, editingDeptId ? (loading ? 'Updating...' : 'Update Department') : (loading ? 'Adding...' : 'Add Department')),
             editingDeptId && React.createElement('button', { 
@@ -305,8 +303,6 @@ export default function SystemSettings({ embed = false }){
                 setDeptCode(''); 
                 setDeptDescription(''); 
                 setDeptDean(''); 
-                setDeptStudentsCount(''); 
-                setDeptFacultyCount(''); 
                 setEditingDeptId(null); 
               } 
             }, 'Cancel')
@@ -331,8 +327,8 @@ export default function SystemSettings({ embed = false }){
               setCourses([]);
               setEditingCourseId(null);
               setCourseName('');
+              setCourseDescription('');
               setCourseStatus('Open');
-              setCourseEnrolled('');
             },
             style: { padding: '8px 16px', fontSize: '0.875rem' }
           }, '← Back to Departments'),
@@ -344,12 +340,15 @@ export default function SystemSettings({ embed = false }){
         (user && user.role === 'admin') && React.createElement('form', { className: 'post-form', onSubmit: handleCourseSubmit },
           error && React.createElement('div', { className: 'alert alert-error' }, error),
           message && React.createElement('div', { className: 'alert alert-success' }, message),
-          React.createElement('input', { type: 'text', placeholder: 'Course Name', value: courseName, onChange: e => setCourseName(e.target.value) }),
+          React.createElement('input', { type: 'text', placeholder: 'Course Name *', value: courseName, onChange: e => setCourseName(e.target.value), required: true }),
+          React.createElement('textarea', { placeholder: 'Description (optional)', value: courseDescription, onChange: e => setCourseDescription(e.target.value), rows: 3, style: { resize: 'vertical' } }),
           React.createElement('select', { value: courseStatus, onChange: e => setCourseStatus(e.target.value) },
             React.createElement('option', { value: 'Open' }, 'Open'),
             React.createElement('option', { value: 'Closed' }, 'Closed')
           ),
-          React.createElement('input', { type: 'number', placeholder: 'Enrolled Count', value: courseEnrolled, onChange: e => setCourseEnrolled(e.target.value) }),
+          React.createElement('div', { style: { padding: '8px', background: '#f3f4f6', borderRadius: '4px', fontSize: '0.875rem', color: '#6b7280' } }, 
+            'Enrolled Count is automatically calculated based on students who have filled out their profile.'
+          ),
           React.createElement('div', { className: 'form-actions' },
             React.createElement('button', { type: 'submit', disabled: loading }, editingCourseId ? (loading ? 'Updating...' : 'Update Course') : (loading ? 'Adding...' : 'Add Course')),
             editingCourseId && React.createElement('button', { 
@@ -357,8 +356,8 @@ export default function SystemSettings({ embed = false }){
               className: 'cancel-btn', 
               onClick: () => { 
                 setCourseName(''); 
+                setCourseDescription('');
                 setCourseStatus('Open'); 
-                setCourseEnrolled(''); 
                 setEditingCourseId(null); 
               } 
             }, 'Cancel')
@@ -401,7 +400,7 @@ export default function SystemSettings({ embed = false }){
       }, 
         loading && departments.length === 0 
           ? React.createElement('div', { className: 'loading-state' }, 
-              React.createElement('p', null, 'Loading system settings...')
+              React.createElement('p', null, 'Loading departments and courses...')
             )
           : content
       );
@@ -417,7 +416,7 @@ export default function SystemSettings({ embed = false }){
       className: 'content',
       style: { padding: '20px', background: '#fee', color: '#900', minHeight: '400px' } 
     }, 
-      React.createElement('h2', null, 'Error Loading System Settings'),
+      React.createElement('h2', null, 'Error Loading Departments and Courses'),
       React.createElement('p', null, error.toString()),
       React.createElement('p', null, 'Please check the console for details and refresh the page.')
     );

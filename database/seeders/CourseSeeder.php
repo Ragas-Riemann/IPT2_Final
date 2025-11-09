@@ -146,6 +146,7 @@ class CourseSeeder extends Seeder
                     ],
                     [
                         'name' => $courseData['name'],
+                        'description' => $courseData['full_name'] ?? null,
                         'status' => 'Open',
                         'enrolled_count' => 0,
                         'department_id' => $department->id,

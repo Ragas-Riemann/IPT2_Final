@@ -11,6 +11,8 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
   const [email, setEmail] = useState("");
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [filteredCourses, setFilteredCourses] = useState([]); // For filter dropdown
+  const [formFilteredCourses, setFormFilteredCourses] = useState([]); // For form dropdown
   const [departmentId, setDepartmentId] = useState("");
   const [courseId, setCourseId] = useState("");
   const [filterDepartmentId, setFilterDepartmentId] = useState("");
@@ -42,6 +44,26 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
     fetchStudents();
   }, [filterDepartmentId, filterCourseId]);
 
+  // Fetch courses when filter department changes
+  useEffect(() => {
+    if (filterDepartmentId) {
+      fetchCoursesByDepartment(filterDepartmentId);
+    } else {
+      setFilteredCourses([]);
+      setFilterCourseId(''); // Reset course filter when department is cleared
+    }
+  }, [filterDepartmentId]);
+
+  // Fetch courses when form department changes
+  useEffect(() => {
+    if (departmentId) {
+      fetchCoursesByDepartmentForForm(departmentId);
+    } else {
+      setFormFilteredCourses([]);
+      setCourseId(''); // Reset course when department is cleared
+    }
+  }, [departmentId]);
+
   const fetchStudents = async () => {
     setLoading(true);
     try {
@@ -70,6 +92,35 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
       const res = await axios.get('/api/courses');
       setCourses(res.data);
     } catch (e) { console.error(e); }
+  };
+
+  const fetchCoursesByDepartment = async (deptId) => {
+    try {
+      const res = await axios.get(`/api/courses?department_id=${deptId}`);
+      setFilteredCourses(res.data);
+      // If current course filter is not in the filtered list, reset it
+      if (filterCourseId && !res.data.find(c => c.id === Number(filterCourseId))) {
+        setFilterCourseId('');
+      }
+    } catch (e) {
+      console.error('Failed to fetch courses', e);
+      setFilteredCourses([]);
+    }
+  };
+
+  const fetchCoursesByDepartmentForForm = async (deptId) => {
+    try {
+      const res = await axios.get(`/api/courses?department_id=${deptId}`);
+      setFormFilteredCourses(res.data);
+      // If current course is not in the filtered list, reset it
+      const currentCourseId = courseId;
+      if (currentCourseId && !res.data.find(c => c.id === Number(currentCourseId))) {
+        setCourseId('');
+      }
+    } catch (e) {
+      console.error('Failed to fetch courses', e);
+      setFormFilteredCourses([]);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -129,8 +180,8 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
           { className: "card-header" },
           React.createElement("h2", null, "Students"),
         ),
-        // Form - only show for admin and faculty
-        (user && (user.role === 'admin' || user.role === 'faculty')) && React.createElement(
+        // Form - only show for admin
+        (user && user.role === 'admin') && React.createElement(
           "form",
           { className: "post-form", onSubmit: handleSubmit },
           error && React.createElement("div", { style: { background: '#ffdddd', color: '#900', padding: '8px', borderRadius: '6px' } }, error),
@@ -175,7 +226,13 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
           }),
           React.createElement(
             "select",
-            { value: departmentId, onChange: (e) => setDepartmentId(e.target.value) },
+            { 
+              value: departmentId, 
+              onChange: (e) => {
+                setDepartmentId(e.target.value);
+                setCourseId(''); // Reset course when department changes
+              }
+            },
             [
               React.createElement("option", { key: "", value: "" }, "Select Department (optional)"),
               ...departments.map(d => React.createElement("option", { key: d.id, value: d.id }, d.name))
@@ -183,10 +240,15 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
           ),
           React.createElement(
             "select",
-            { value: courseId, onChange: (e) => setCourseId(e.target.value) },
+            { 
+              value: courseId, 
+              onChange: (e) => setCourseId(e.target.value),
+              disabled: !departmentId, // Disable if no department selected
+              style: { opacity: departmentId ? 1 : 0.6 }
+            },
             [
-              React.createElement("option", { key: "", value: "" }, "Select Course (optional)"),
-              ...courses.map(c => React.createElement("option", { key: c.id, value: c.id }, c.name))
+              React.createElement("option", { key: "", value: "" }, departmentId ? "Select Course (optional)" : "Select Department first"),
+              ...formFilteredCourses.map(c => React.createElement("option", { key: c.id, value: c.id }, c.name))
             ]
           ),
           React.createElement(
@@ -206,7 +268,13 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
           { className: "filters", style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' } },
           React.createElement(
             "select",
-            { value: filterDepartmentId, onChange: (e) => setFilterDepartmentId(e.target.value) },
+            { 
+              value: filterDepartmentId, 
+              onChange: (e) => {
+                setFilterDepartmentId(e.target.value);
+                setFilterCourseId(''); // Reset course filter when department changes
+              }
+            },
             [
               React.createElement("option", { key: "", value: "" }, "Filter by Department"),
               ...departments.map(d => React.createElement("option", { key: d.id, value: d.id }, d.name))
@@ -214,10 +282,15 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
           ),
           React.createElement(
             "select",
-            { value: filterCourseId, onChange: (e) => setFilterCourseId(e.target.value) },
+            { 
+              value: filterCourseId, 
+              onChange: (e) => setFilterCourseId(e.target.value),
+              disabled: !filterDepartmentId, // Disable if no department selected
+              style: { opacity: filterDepartmentId ? 1 : 0.6 }
+            },
             [
-              React.createElement("option", { key: "", value: "" }, "Filter by Course"),
-              ...courses.map(c => React.createElement("option", { key: c.id, value: c.id }, c.name))
+              React.createElement("option", { key: "", value: "" }, filterDepartmentId ? "Filter by Course" : "Select Department first"),
+              ...filteredCourses.map(c => React.createElement("option", { key: c.id, value: c.id }, c.name))
             ]
           )
         ),
@@ -232,7 +305,7 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
               React.createElement(
                 "tr",
                 null,
-                ["ID", "First Name", "Last Name", "Age", "Gender", "Email", "Department Code", "Course ID", "Created At", user && (user.role === 'admin' || user.role === 'faculty' || user.role === 'student') ? "Actions" : ""].filter(h => h).map((h) => React.createElement("th", { key: h }, h))
+                ["ID", "First Name", "Last Name", "Age", "Gender", "Email", "Department Code", "Course Code", "Created At", user && (user.role === 'admin' || user.role === 'student') ? "Actions" : ""].filter(h => h).map((h) => React.createElement("th", { key: h }, h))
               )
             ),
             React.createElement(
@@ -249,15 +322,29 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
                   React.createElement("td", null, s.gender ?? ""),
                   React.createElement("td", null, s.email ?? ""),
                   React.createElement("td", null, s.department_id ? (departments.find(d => d.id === s.department_id)?.code || s.department_id) : ""),
-                  React.createElement("td", null, s.course_id ?? ""),
+                  React.createElement("td", null, s.course_id ? (courses.find(c => c.id === s.course_id)?.name || s.course_id) : ""),
                   React.createElement("td", null, new Date(s.created_at).toLocaleString()),
-                  React.createElement(
+                  // Only show Actions column for admin and students (not faculty)
+                  (user && (user.role === 'admin' || user.role === 'student')) && React.createElement(
                     "td",
                     null,
-                    // Students can only edit their own profile, admin/faculty can edit any
-                    (user && (user.role === 'admin' || user.role === 'faculty' || (user.role === 'student' && s.email === user.email))) && React.createElement(
+                    // Students can only edit their own profile, admin can edit any
+                    (user && (user.role === 'admin' || (user.role === 'student' && s.email === user.email))) && React.createElement(
                       "button",
-                      { onClick: () => { setEditingId(s.id); setFirstName(s.first_name); setLastName(s.last_name); setAge(s.age ?? ""); setGender(s.gender ?? ""); setEmail(s.email ?? ""); setDepartmentId(s.department_id ?? ""); setCourseId(s.course_id ?? ""); } },
+                      { onClick: () => { 
+                          setEditingId(s.id); 
+                          setFirstName(s.first_name); 
+                          setLastName(s.last_name); 
+                          setAge(s.age ?? ""); 
+                          setGender(s.gender ?? ""); 
+                          setEmail(s.email ?? ""); 
+                          setDepartmentId(s.department_id ?? ""); 
+                          setCourseId(s.course_id ?? "");
+                          // Fetch courses for the department if one is set
+                          if (s.department_id) {
+                            fetchCoursesByDepartmentForForm(s.department_id);
+                          }
+                        } },
                       "Edit"
                     ),
                     // Only admin can delete
@@ -269,7 +356,7 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
                   )
                 ))
               ) : (
-                React.createElement("tr", null, React.createElement("td", { colSpan: 10 }, "No students found."))
+                React.createElement("tr", null, React.createElement("td", { colSpan: user && (user.role === 'admin' || user.role === 'student') ? 10 : 9 }, "No students found."))
               )
             )
           )

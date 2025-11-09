@@ -10,16 +10,20 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   const [gender, setGender] = useState('');
   const [email, setEmail] = useState('');
   const [departments, setDepartments] = useState([]);
-  const [courses, setCourses] = useState([]);
   const [departmentId, setDepartmentId] = useState('');
-  const [courseId, setCourseId] = useState('');
+  const [filterDepartmentId, setFilterDepartmentId] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [user, setUser] = useState(null);
 
-  useEffect(()=>{ fetchUser(); fetchAll(); fetchDepartments(); fetchCourses(); },[]);
+  useEffect(()=>{ fetchUser(); fetchAll(); fetchDepartments(); },[]);
+
+  useEffect(() => {
+    // refetch list when filter changes
+    fetchAll();
+  }, [filterDepartmentId]);
 
   const fetchUser = async () => {
     try {
@@ -33,7 +37,9 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   async function fetchAll(){
     setLoading(true);
     try{
-      const res = await axios.get('/api/faculty');
+      const params = {};
+      if (filterDepartmentId) params.department_id = filterDepartmentId;
+      const res = await axios.get('/api/faculty', { params });
       setFaculty(res.data);
       onDataChange(res.data);
     }catch(e){ console.error(e); }
@@ -53,7 +59,6 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
         gender: gender || null,
         email: email || null,
         department_id: departmentId || null,
-        course_id: courseId || null,
       };
       if(editingId){
         await axios.put(`/api/faculty/${editingId}`, payload);
@@ -62,7 +67,7 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
         await axios.post('/api/faculty', payload);
         setMessage('Faculty added');
       }
-      setFirstName(''); setLastName(''); setAge(''); setGender(''); setEmail(''); setDepartmentId(''); setCourseId(''); setEditingId(null);
+      setFirstName(''); setLastName(''); setAge(''); setGender(''); setEmail(''); setDepartmentId(''); setEditingId(null);
       await fetchAll();
     }catch(e){
       const apiMsg = e?.response?.data?.message || Object.values(e?.response?.data || {})?.[0] || e.message;
@@ -77,9 +82,6 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
 
   async function fetchDepartments(){
     try{ const res = await axios.get('/api/departments'); setDepartments(res.data); } catch(e){ console.error(e); }
-  }
-  async function fetchCourses(){
-    try{ const res = await axios.get('/api/courses'); setCourses(res.data); } catch(e){ console.error(e); }
   }
 
   const content = (
@@ -102,17 +104,30 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
           React.createElement('select', { value:departmentId, onChange:e=>setDepartmentId(e.target.value) },
             [React.createElement('option', { key:'', value:'' }, 'Select Department (optional)'), ...departments.map(d=> React.createElement('option', { key:d.id, value:d.id }, d.name))]
           ),
-          React.createElement('select', { value:courseId, onChange:e=>setCourseId(e.target.value) },
-            [React.createElement('option', { key:'', value:'' }, 'Select Course (optional)'), ...courses.map(c=> React.createElement('option', { key:c.id, value:c.id }, c.name))]
-          ),
           React.createElement('div', { className:'form-actions' },
             React.createElement('button', { type:'submit', disabled:loading }, editingId ? (loading?'Updating...':'Update') : (loading?'Adding...':'Add Faculty')),
-            editingId && React.createElement('button', { type:'button', className:'cancel-btn', onClick:()=>{ setFirstName(''); setLastName(''); setAge(''); setGender(''); setEmail(''); setDepartmentId(''); setCourseId(''); setEditingId(null); setError(''); setMessage(''); } }, 'Cancel')
+            editingId && React.createElement('button', { type:'button', className:'cancel-btn', onClick:()=>{ setFirstName(''); setLastName(''); setAge(''); setGender(''); setEmail(''); setDepartmentId(''); setEditingId(null); setError(''); setMessage(''); } }, 'Cancel')
+          )
+        ),
+        // Filter dropdown - show for all authenticated users
+        user && React.createElement(
+          'div',
+          { className: 'filters', style: { display: 'flex', gap: '8px', marginTop: '8px', marginBottom: '8px' } },
+          React.createElement(
+            'select',
+            { 
+              value: filterDepartmentId, 
+              onChange: (e) => setFilterDepartmentId(e.target.value)
+            },
+            [
+              React.createElement('option', { key: '', value: '' }, 'Filter by Department'),
+              ...departments.map(d => React.createElement('option', { key: d.id, value: d.id }, d.name))
+            ]
           )
         ),
         loading ? React.createElement('p', null, 'Loading…') : (
           React.createElement('table', null,
-            React.createElement('thead', null, React.createElement('tr', null, ['ID','First Name','Last Name','Age','Gender','Email','Department Code','Course ID','Created At', user && user.role === 'admin' ? 'Actions' : ''].filter(h => h).map(h=> React.createElement('th', { key:h }, h)))),
+            React.createElement('thead', null, React.createElement('tr', null, ['ID','First Name','Last Name','Age','Gender','Email','Department Code','Created At', user && user.role === 'admin' ? 'Actions' : ''].filter(h => h).map(h=> React.createElement('th', { key:h }, h)))),
             React.createElement('tbody', null,
               faculty.length>0 ? faculty.map(f=> (
                 React.createElement('tr', { key:f.id },
@@ -123,11 +138,10 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
                   React.createElement('td', null, f.gender ?? ''),
                   React.createElement('td', null, f.email ?? ''),
                   React.createElement('td', null, f.department_id ? (departments.find(d => d.id === f.department_id)?.code || f.department_id) : ''),
-                  React.createElement('td', null, f.course_id ?? ''),
                   React.createElement('td', null, new Date(f.created_at).toLocaleString()),
                   // Only admin can edit/delete faculty
                   (user && user.role === 'admin') && React.createElement('td', null,
-                    React.createElement('button', { onClick:()=>{ setEditingId(f.id); setFirstName(f.first_name); setLastName(f.last_name); setAge(f.age ?? ''); setGender(f.gender ?? ''); setEmail(f.email ?? ''); setDepartmentId(f.department_id ?? ''); setCourseId(f.course_id ?? ''); } }, 'Edit'),
+                    React.createElement('button', { onClick:()=>{ setEditingId(f.id); setFirstName(f.first_name); setLastName(f.last_name); setAge(f.age ?? ''); setGender(f.gender ?? ''); setEmail(f.email ?? ''); setDepartmentId(f.department_id ?? ''); } }, 'Edit'),
                     React.createElement('button', { className:'delete-btn', onClick:()=>handleDelete(f.id) }, 'Delete')
                   )
                 )

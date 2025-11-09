@@ -15,7 +15,8 @@ class Faculty extends Model
         'age',
         'gender',
         'email',
+        'profile_image',
+        'date_of_birth',
         'department_id',
-        'course_id',
     ];
 }

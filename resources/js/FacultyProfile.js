@@ -16,15 +16,13 @@ export default function FacultyProfile() {
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
   const [email, setEmail] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [departmentId, setDepartmentId] = useState('');
-  const [courseId, setCourseId] = useState('');
   const [departments, setDepartments] = useState([]);
-  const [courses, setCourses] = useState([]);
 
   useEffect(() => {
     fetchUser();
     fetchDepartments();
-    fetchCourses();
   }, []);
 
   useEffect(() => {
@@ -32,6 +30,29 @@ export default function FacultyProfile() {
       fetchFacultyProfile();
     }
   }, [user]);
+
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return '';
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age > 0 ? String(age) : '';
+  };
+
+  // Auto-calculate age when date of birth changes
+  useEffect(() => {
+    if (dateOfBirth) {
+      const calculatedAge = calculateAge(dateOfBirth);
+      if (calculatedAge) {
+        setAge(calculatedAge);
+      }
+    }
+  }, [dateOfBirth]);
 
   const fetchUser = async () => {
     try {
@@ -59,8 +80,8 @@ export default function FacultyProfile() {
         setAge(facultyProfile.age || '');
         setGender(facultyProfile.gender || '');
         setEmail(facultyProfile.email || user.email);
+        setDateOfBirth(facultyProfile.date_of_birth || '');
         setDepartmentId(facultyProfile.department_id || '');
-        setCourseId(facultyProfile.course_id || '');
       } else {
         // No profile exists yet, allow them to create one
         setEmail(user.email);
@@ -83,20 +104,13 @@ export default function FacultyProfile() {
     }
   };
 
-  const fetchCourses = async () => {
-    try {
-      const res = await axios.get('/api/courses');
-      setCourses(res.data);
-    } catch (e) {
-      console.error('Failed to fetch courses', e);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setMessage('');
     
+    // Validate required fields
     if (!firstName || !lastName) {
       setError('First name and last name are required');
       return;
@@ -104,22 +118,31 @@ export default function FacultyProfile() {
 
     setLoading(true);
     try {
+      // Ensure required fields are never empty
+      const first_name = firstName.trim();
+      const last_name = lastName.trim();
+      
+      if (!first_name || !last_name) {
+        setError('First name and last name are required');
+        setLoading(false);
+        return;
+      }
+
       const payload = {
-        first_name: firstName,
-        last_name: lastName,
+        first_name: first_name,
+        last_name: last_name,
         age: age === '' ? null : Number(age),
         gender: gender || null,
         email: email || user.email,
+        date_of_birth: dateOfBirth || null,
         department_id: departmentId || null,
-        course_id: courseId || null,
       };
 
+      // Use regular JSON payload
       if (faculty) {
-        // Update existing profile
         await axios.put(`/api/faculty/${faculty.id}`, payload);
         setMessage('Profile updated successfully!');
       } else {
-        // Create new profile
         await axios.post('/api/faculty', payload);
         setMessage('Profile created successfully!');
       }
@@ -127,7 +150,8 @@ export default function FacultyProfile() {
       setEditing(false);
       await fetchFacultyProfile();
     } catch (err) {
-      console.error(err);
+      console.error('Error submitting profile:', err);
+      console.error('Error response:', err?.response?.data);
       const apiMsg = err?.response?.data?.message || Object.values(err?.response?.data || {})?.[0] || err.message;
       setError(typeof apiMsg === 'string' ? apiMsg : 'Request failed');
     } finally {
@@ -136,6 +160,16 @@ export default function FacultyProfile() {
   };
 
   const handleEdit = () => {
+    // Ensure form fields are populated when editing
+    if (faculty) {
+      setFirstName(faculty.first_name || '');
+      setLastName(faculty.last_name || '');
+      setAge(faculty.age || '');
+      setGender(faculty.gender || '');
+      setEmail(faculty.email || user.email);
+      setDateOfBirth(faculty.date_of_birth || '');
+      setDepartmentId(faculty.department_id || '');
+    }
     setEditing(true);
     setError('');
     setMessage('');
@@ -148,8 +182,8 @@ export default function FacultyProfile() {
       setAge(faculty.age || '');
       setGender(faculty.gender || '');
       setEmail(faculty.email || user.email);
+      setDateOfBirth(faculty.date_of_birth || '');
       setDepartmentId(faculty.department_id || '');
-      setCourseId(faculty.course_id || '');
     }
     setEditing(false);
     setError('');
@@ -192,10 +226,6 @@ export default function FacultyProfile() {
           React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '150px 1fr', gap: '10px', marginBottom: '8px' } },
             React.createElement('strong', null, 'Department:'),
             React.createElement('span', null, faculty.department_id ? (departments.find(d => d.id === faculty.department_id)?.code || departments.find(d => d.id === faculty.department_id)?.name || `ID: ${faculty.department_id}`) : 'Not set')
-          ),
-          React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '150px 1fr', gap: '10px', marginBottom: '8px' } },
-            React.createElement('strong', null, 'Course ID:'),
-            React.createElement('span', null, faculty.course_id ? courses.find(c => c.id === faculty.course_id)?.name || `ID: ${faculty.course_id}` : 'Not set')
           )
         ),
         React.createElement('div', { className: 'form-actions', style: { marginTop: '20px' } },
@@ -238,13 +268,21 @@ export default function FacultyProfile() {
         style: { marginBottom: '10px', background: '#f5f5f5', cursor: 'not-allowed' }
       }),
       React.createElement('input', {
+        type: 'date',
+        placeholder: 'Date of Birth (mm/dd/yyyy) - Age will be calculated automatically',
+        value: dateOfBirth,
+        onChange: (e) => setDateOfBirth(e.target.value),
+        style: { marginBottom: '10px' }
+      }),
+      React.createElement('input', {
         type: 'number',
-        placeholder: 'Age (optional)',
+        placeholder: 'Age (auto-calculated from Date of Birth)',
         value: age,
         onChange: (e) => setAge(e.target.value),
         min: 0,
         max: 150,
-        style: { marginBottom: '10px' }
+        readOnly: true,
+        style: { marginBottom: '10px', background: '#f5f5f5', cursor: 'not-allowed' }
       }),
       React.createElement('select', {
         value: gender,
@@ -264,14 +302,6 @@ export default function FacultyProfile() {
       },
         React.createElement('option', { value: '' }, 'Select Department (optional)'),
         ...departments.map(d => React.createElement('option', { key: d.id, value: d.id }, d.name))
-      ),
-      React.createElement('select', {
-        value: courseId,
-        onChange: (e) => setCourseId(e.target.value),
-        style: { marginBottom: '10px' }
-      },
-        React.createElement('option', { value: '' }, 'Select Course (optional)'),
-        ...courses.map(c => React.createElement('option', { key: c.id, value: c.id }, c.name))
       ),
 
       React.createElement('div', { className: 'form-actions', style: { marginTop: '20px' } },

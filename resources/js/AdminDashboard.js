@@ -4,6 +4,7 @@ import { Chart, BarController, BarElement, CategoryScale, LinearScale, ArcElemen
 import Student from './Student';
 import Faculty from './Faculty';
 import SystemSettings from './SystemSettings';
+import Calendar from './Calendar';
 
 // Register all controllers/elements used
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend, PieController);
@@ -152,7 +153,7 @@ export default function AdminDashboard(){
           user ? `${user.name} (${user.role})` : 'Loading...'
         ),
         React.createElement('nav', null,
-          ['Dashboard','Students','Faculty','System Settings'].map(i =>
+          ['Dashboard','Students','Faculty','Departments and Courses'].map(i =>
             React.createElement('a', { key:i, href:'#', className: activeTab===i ? 'active': '', onClick:(e)=>{e.preventDefault(); setActiveTab(i);} }, i)
           )
         ),
@@ -203,6 +204,10 @@ export default function AdminDashboard(){
                       )
                     )
                   )
+                ),
+                // Calendar section
+                React.createElement('div', { style: { marginTop: '20px' } },
+                  React.createElement(Calendar, { embed: true })
                 )
               )
             : activeTab==='Students'
@@ -213,7 +218,7 @@ export default function AdminDashboard(){
                 ? React.createElement(React.Fragment, null,
                     React.createElement(Faculty, { embed: true, onDataChange: (list)=>{ setFacultyTotal(list.length); updatePieFromFaculty(list);} })
                   )
-                : activeTab==='System Settings'
+                : activeTab==='Departments and Courses'
                   ? React.createElement(React.Fragment, null,
                       React.createElement(SystemSettings, { embed: true })
                     )

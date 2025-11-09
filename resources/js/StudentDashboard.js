@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import '../sass/Dashboard.scss';
-import Courses from './Courses';
 import StudentProfile from './StudentProfile';
-import MyDepartment from './MyDepartment';
+import SystemSettings from './SystemSettings';
+import Calendar from './Calendar';
 
 export default function StudentDashboard(){
   const [activeTab, setActiveTab] = React.useState('Dashboard');
@@ -37,7 +37,7 @@ export default function StudentDashboard(){
           user ? `${user.name} (${user.role})` : 'Loading...'
         ),
         React.createElement('nav', null,
-          ['Dashboard','My Courses','My Department','Profile'].map(i =>
+          ['Dashboard','Departments and Courses','Profile'].map(i =>
             React.createElement('a', { key:i, href:'#', className: activeTab===i ? 'active': '', onClick:(e)=>{e.preventDefault(); setActiveTab(i);} }, i)
           )
         ),
@@ -67,21 +67,20 @@ export default function StudentDashboard(){
                   ))
                 ),
                 React.createElement('div', { className:'divider' }),
-                React.createElement('div', { className: 'welcome-card' },
-                  React.createElement('h3', null, 'Welcome to Student Dashboard'),
-                  React.createElement('p', null, 
-                    'View your courses, check your grades, and manage your academic information from this dashboard.'
-                  )
+                React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' } },
+                  React.createElement('div', { className: 'welcome-card' },
+                    React.createElement('h3', null, 'Welcome to Student Dashboard'),
+                    React.createElement('p', null, 
+                      'View your courses, check your grades, and manage your academic information from this dashboard.'
+                    )
+                  ),
+                  React.createElement(Calendar, { embed: true })
                 )
               )
-            : activeTab==='My Courses'
-              ? React.createElement(React.Fragment, null,
-                  React.createElement(Courses, { embed: true })
-                )
-              : activeTab==='My Department'
+            : activeTab==='Departments and Courses'
                 ? React.createElement(React.Fragment, null,
-                    React.createElement(MyDepartment, { userRole: 'student' })
-                )
+                    React.createElement(SystemSettings, { embed: true })
+                  )
               : activeTab==='Profile'
                 ? React.createElement(React.Fragment, null,
                     React.createElement(StudentProfile)

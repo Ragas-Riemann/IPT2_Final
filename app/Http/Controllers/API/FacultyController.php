@@ -5,18 +5,34 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Faculty;
+use App\Models\User;
 
 class FacultyController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         $query = Faculty::query();
         
+        // Only show faculty that have user accounts (email exists in users table)
+        $userEmails = User::where('role', 'faculty')->whereNotNull('email')->pluck('email')->toArray();
+        if (!empty($userEmails)) {
+            $query->whereNotNull('email')->whereIn('email', $userEmails);
+        } else {
+            // If no faculty users exist, return empty result
+            $query->whereRaw('1 = 0');
+        }
+        
         // Faculty can only see their own record
         if ($user->role === 'faculty') {
             $query->where('email', $user->email);
+        }
+        
+        // Filter by department if provided
+        if ($request->has('department_id') && $request->department_id) {
+            $query->where('department_id', $request->department_id);
         }
         
         // All authenticated users can view faculty list
@@ -33,9 +49,29 @@ class FacultyController extends Controller
             'age'        => 'nullable|integer|min:0|max:150',
             'gender'     => 'nullable|string|in:Male,Female',
             'email'      => 'nullable|email|max:255',
+            'date_of_birth' => 'nullable|date',
             'department_id' => 'nullable|integer|exists:departments,id',
-            'course_id'     => 'nullable|integer|exists:courses,id',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Handle image upload
+        \Log::info('Store - Checking for profile_image file. hasFile: ' . ($request->hasFile('profile_image') ? 'true' : 'false'));
+        \Log::info('Store - Request all files: ' . json_encode($request->allFiles()));
+        
+        if ($request->hasFile('profile_image')) {
+            try {
+                $image = $request->file('profile_image');
+                \Log::info('Store - Image file received: ' . $image->getClientOriginalName() . ', Size: ' . $image->getSize());
+                
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('profile_images', $imageName, 'public');
+                \Log::info('Store - Image saved to: ' . $imagePath);
+                $validated['profile_image'] = $imagePath;
+            } catch (\Exception $e) {
+                \Log::error('Store - Image upload error: ' . $e->getMessage());
+                return response()->json(['message' => 'Failed to upload image: ' . $e->getMessage()], 500);
+            }
+        }
 
         // If faculty is creating their own profile, ensure email matches
         if ($user->role === 'faculty') {
@@ -93,9 +129,41 @@ class FacultyController extends Controller
             'age'        => 'nullable|integer|min:0|max:150',
             'gender'     => 'nullable|string|in:Male,Female',
             'email'      => 'nullable|email|max:255',
+            'date_of_birth' => 'nullable|date',
             'department_id' => 'nullable|integer|exists:departments,id',
-            'course_id'     => 'nullable|integer|exists:courses,id',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Handle image upload
+        \Log::info('Checking for profile_image file. hasFile: ' . ($request->hasFile('profile_image') ? 'true' : 'false'));
+        \Log::info('Request all files: ' . json_encode($request->allFiles()));
+        
+        if ($request->hasFile('profile_image')) {
+            try {
+                $image = $request->file('profile_image');
+                \Log::info('Image file received: ' . $image->getClientOriginalName() . ', Size: ' . $image->getSize());
+                
+                // Delete old image if exists
+                if ($faculty->profile_image && Storage::disk('public')->exists($faculty->profile_image)) {
+                    Storage::disk('public')->delete($faculty->profile_image);
+                }
+                
+                $imageName = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                $imagePath = $image->storeAs('profile_images', $imageName, 'public');
+                \Log::info('Image saved to: ' . $imagePath);
+                $validated['profile_image'] = $imagePath;
+            } catch (\Exception $e) {
+                \Log::error('Image upload error: ' . $e->getMessage());
+                \Log::error('Stack trace: ' . $e->getTraceAsString());
+                return response()->json(['message' => 'Failed to upload image: ' . $e->getMessage()], 500);
+            }
+        } else {
+            // Preserve existing image if no new image is uploaded
+            if ($faculty->profile_image) {
+                $validated['profile_image'] = $faculty->profile_image;
+            }
+            \Log::info('No new image uploaded, preserving existing: ' . ($faculty->profile_image ?? 'none'));
+        }
 
         $faculty->update($validated);
         return response()->json($faculty, 200);

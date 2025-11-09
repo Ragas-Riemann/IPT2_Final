@@ -7,6 +7,14 @@
 // Bootstrap
 @import 'bootstrap/scss/bootstrap';
 
+// Global body styles
+body {
+  margin: 0;
+  padding: 0;
+  background: $gray-50;
+  font-family: $font-family-sans-serif;
+}
+
 // Dashboard styles (unified design system)
 @import 'Dashboard.scss';
 

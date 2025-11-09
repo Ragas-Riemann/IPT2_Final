@@ -81,11 +81,11 @@ export default function StudentDashboard(){
               : activeTab==='My Department'
                 ? React.createElement(React.Fragment, null,
                     React.createElement(MyDepartment, { userRole: 'student' })
+                )
+              : activeTab==='Profile'
+                ? React.createElement(React.Fragment, null,
+                    React.createElement(StudentProfile)
                   )
-                : activeTab==='Profile'
-                  ? React.createElement(React.Fragment, null,
-                      React.createElement(StudentProfile)
-                    )
                   : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, 'This section is under construction.'))
         )
       )

@@ -3,8 +3,7 @@ import '../sass/Dashboard.scss';
 import { Chart, BarController, BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend, PieController } from 'chart.js';
 import Student from './Student';
 import Faculty from './Faculty';
-import Courses from './Courses';
-import Departments from './Departments';
+import SystemSettings from './SystemSettings';
 
 // Register all controllers/elements used
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend, PieController);
@@ -143,8 +142,9 @@ export default function AdminDashboard(){
     .catch(err => console.error('Logout failed', err));
   };
 
-  return (
-    React.createElement('div', { className: 'dashboard' },
+  try {
+    return (
+      React.createElement('div', { className: 'dashboard' },
       // Sidebar
       React.createElement('aside', { className:'sidebar' },
         React.createElement('h2', null, 'FSUU Admin'),
@@ -152,7 +152,7 @@ export default function AdminDashboard(){
           user ? `${user.name} (${user.role})` : 'Loading...'
         ),
         React.createElement('nav', null,
-          ['Dashboard','Students','Faculty','Courses','Departments'].map(i =>
+          ['Dashboard','Students','Faculty','System Settings'].map(i =>
             React.createElement('a', { key:i, href:'#', className: activeTab===i ? 'active': '', onClick:(e)=>{e.preventDefault(); setActiveTab(i);} }, i)
           )
         ),
@@ -213,18 +213,27 @@ export default function AdminDashboard(){
                 ? React.createElement(React.Fragment, null,
                     React.createElement(Faculty, { embed: true, onDataChange: (list)=>{ setFacultyTotal(list.length); updatePieFromFaculty(list);} })
                   )
-                : activeTab==='Courses'
+                : activeTab==='System Settings'
                   ? React.createElement(React.Fragment, null,
-                      React.createElement(Courses, { embed: true })
+                      React.createElement(SystemSettings, { embed: true })
                     )
-                  : activeTab==='Departments'
-                    ? React.createElement(React.Fragment, null,
-                        React.createElement(Departments, { embed: true })
-                      )
-                    : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, 'This section is under construction.'))
+                  : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, 'This section is under construction.'))
         )
       )
     )
   );
+  } catch (error) {
+    console.error('AdminDashboard render error:', error);
+    return React.createElement('div', { 
+      className: 'dashboard', 
+      style: { padding: '40px', background: '#fee', color: '#900', minHeight: '100vh' } 
+    }, 
+      React.createElement('h1', null, 'Error Loading Admin Dashboard'),
+      React.createElement('p', null, 'Please check the browser console for details and refresh the page.'),
+      React.createElement('pre', { style: { background: '#fff', padding: '10px', borderRadius: '4px', overflow: 'auto' } }, 
+        error.toString()
+      )
+    );
+  }
 }
 

@@ -6,4 +6,9 @@
 
 // Bootstrap
 @import 'bootstrap/scss/bootstrap';
-@import 'Student.scss'
+
+// Dashboard styles (unified design system)
+@import 'Dashboard.scss';
+
+// Student/Faculty component styles
+@import 'Student.scss';

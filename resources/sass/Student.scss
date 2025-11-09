@@ -1,144 +1,239 @@
+@import 'variables';
+
+// Student.scss now uses the same design system as Dashboard.scss
+// This ensures consistency across all components
+
 .dashboard {
-  display: flex;
-  height: 100vh;
-  background: #2f4f4f;
-  color: white;
+  @extend .dashboard;
+}
 
-  .sidebar {
-    width: 220px;
-    background: #1a2d2d;
-    padding: 20px;
+// Additional styles specific to student/faculty components
+.card {
+  background: $dashboard-card;
+  color: $gray-900;
+  padding: $spacing-xl;
+  border-radius: $radius-xl;
+  border: 1px solid $gray-200;
+  box-shadow: $shadow-md;
+  margin-bottom: $spacing-lg;
+  transition: all 0.2s ease;
 
-    h2 {
-      margin-bottom: 30px;
-      font-size: 20px;
-      font-weight: bold;
-    }
-
-    nav {
-      display: flex;
-      flex-direction: column;
-
-      a {
-        padding: 12px;
-        margin: 4px 0;
-        background: #2f4f4f;
-        color: white;
-        text-decoration: none;
-        border-radius: 6px;
-        transition: background 0.2s;
-
-        &:hover {
-          background: #3f6f6f;
-        }
-      }
-    }
+  &:hover {
+    box-shadow: $shadow-lg;
   }
 
-  .main {
-    flex: 1;
+  .card-header {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-md;
+    border-bottom: 2px solid $gray-200;
 
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #243c3c;
-      padding: 15px 25px;
-
-      h1 {
-        font-size: 18px;
-      }
-
-      .profile img {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: white;
-      }
-    }
-
-    .content {
-      padding: 20px;
-
-      .card {
-        background: #5a7d94;
-        padding: 20px;
-        border-radius: 12px;
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-
-          .add-btn {
-            background: #c8ff9e;
-            color: black;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            border: none;
-            cursor: pointer;
-          }
-        }
-
-        .post-form {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          margin-bottom: 20px;
-
-          input,
-          textarea {
-            padding: 8px;
-            border-radius: 6px;
-            border: none;
-            font-size: 14px;
-          }
-
-          button {
-            padding: 8px 14px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-          }
-
-          .cancel-btn {
-            background: #ff5252;
-            color: white;
-          }
-        }
-
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          background: #f9f9f9;
-          color: black;
-          border-radius: 8px;
-          overflow: hidden;
-
-          th, td {
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
-          }
-
-          th {
-            background: #dce3eb;
-          }
-
-          .delete-btn {
-            background: #f28b82;
-            color: white;
-            margin-left: 8px;
-          }
-        }
-      }
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: $gray-900;
+      margin: 0;
     }
   }
 }
 
+// Profile specific styles
+.profile-section {
+  background: $dashboard-card;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  box-shadow: $shadow-md;
+  border: 1px solid $gray-200;
 
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: $gray-900;
+    margin-bottom: $spacing-lg;
+    padding-bottom: $spacing-md;
+    border-bottom: 2px solid $gray-200;
+  }
+
+  .profile-field {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+    padding: $spacing-md;
+    background: $gray-50;
+    border-radius: $radius-lg;
+
+    strong {
+      color: $gray-700;
+      font-weight: 600;
+    }
+
+    span {
+      color: $gray-900;
+    }
+  }
+
+  .profile-description {
+    margin: $spacing-lg 0;
+    padding: $spacing-lg;
+    background: $gray-50;
+    border-radius: $radius-lg;
+    border-left: 4px solid $primary-500;
+
+    strong {
+      display: block;
+      margin-bottom: $spacing-sm;
+      color: $gray-700;
+      font-weight: 600;
+    }
+
+    p {
+      color: $gray-700;
+      line-height: 1.6;
+      margin: 0;
+    }
+  }
+}
+
+// Welcome card styles
+.welcome-card {
+  background: linear-gradient(135deg, $primary-600 0%, $primary-700 100%);
+  color: white;
+  padding: $spacing-xl;
+  border-radius: $radius-xl;
+  box-shadow: $shadow-lg;
+  margin-top: $spacing-lg;
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: $spacing-md;
+    color: white;
+  }
+
+  p {
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+    margin: 0;
+  }
+}
+
+// Department card styles
+.department-card {
+  background: $dashboard-card;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  box-shadow: $shadow-md;
+  border: 1px solid $gray-200;
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $gray-900;
+    margin-bottom: $spacing-md;
+    padding-bottom: $spacing-md;
+    border-bottom: 3px solid $primary-500;
+  }
+
+  .department-field {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+    padding: $spacing-sm 0;
+
+    strong {
+      color: $gray-700;
+      font-weight: 600;
+    }
+
+    span {
+      color: $gray-900;
+    }
+  }
+
+  .department-description {
+    margin: $spacing-lg 0;
+    padding: $spacing-lg;
+    background: $gray-50;
+    border-radius: $radius-lg;
+    border-left: 4px solid $secondary-500;
+
+    strong {
+      display: block;
+      margin-bottom: $spacing-sm;
+      color: $gray-700;
+      font-weight: 600;
+    }
+
+    p {
+      color: $gray-700;
+      line-height: 1.6;
+      margin: 0;
+    }
+  }
+}
+
+// Loading and empty states
+.loading-state,
+.empty-state {
+  text-align: center;
+  padding: $spacing-2xl;
+  color: $gray-500;
+
+  p {
+    font-size: 1rem;
+    margin: 0;
+  }
+}
+
+// Button styles
+.btn {
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $radius-lg;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+
+  &.btn-primary {
+    background: $primary-600;
+    color: white;
+
+    &:hover {
+      background: $primary-700;
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+    }
+  }
+
+  &.btn-secondary {
+    background: $gray-400;
+    color: white;
+
+    &:hover {
+      background: $gray-500;
+    }
+  }
+
+  &.btn-danger {
+    background: $error;
+    color: white;
+
+    &:hover {
+      background: darken($error, 10%);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

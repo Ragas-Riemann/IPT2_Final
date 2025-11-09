@@ -13,6 +13,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Seed departments first (required for courses)
+        $this->call([
+            DepartmentSeeder::class,
+            CourseSeeder::class,
+        ]);
+
         // User::factory(10)->create();
 
         User::factory()->create([

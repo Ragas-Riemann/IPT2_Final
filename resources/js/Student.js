@@ -2,24 +2,55 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "../sass/Student.scss";
 
-export default function Student() {
+export default function Student({ embed = false, onDataChange = () => {} }) {
   const [students, setStudents] = useState([]);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
+  const [email, setEmail] = useState("");
+  const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [departmentId, setDepartmentId] = useState("");
+  const [courseId, setCourseId] = useState("");
+  const [filterDepartmentId, setFilterDepartmentId] = useState("");
+  const [filterCourseId, setFilterCourseId] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
+    fetchUser();
     fetchStudents();
+    fetchDepartments();
+    fetchCourses();
   }, []);
+
+  const fetchUser = async () => {
+    try {
+      const res = await axios.get('/api/user');
+      setUser(res.data);
+    } catch (e) {
+      console.error('Failed to fetch user', e);
+    }
+  };
+
+  useEffect(() => {
+    // refetch list when filters change
+    fetchStudents();
+  }, [filterDepartmentId, filterCourseId]);
 
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("/api/students");
+      const params = {};
+      if (filterDepartmentId) params.department_id = filterDepartmentId;
+      if (filterCourseId) params.course_id = filterCourseId;
+      const res = await axios.get("/api/students", { params });
       setStudents(res.data);
+      onDataChange(res.data);
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
@@ -27,26 +58,45 @@ export default function Student() {
     }
   };
 
+  const fetchDepartments = async () => {
+    try {
+      const res = await axios.get('/api/departments');
+      setDepartments(res.data);
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const res = await axios.get('/api/courses');
+      setCourses(res.data);
+    } catch (e) { console.error(e); }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
     if (!firstName || !lastName) {
-      setError("Fill all fields");
+      setError("Fill required fields");
       return;
     }
 
     try {
       setLoading(true);
       if (editingId) {
-        await axios.put(`/api/students/${editingId}`, { first_name: firstName, last_name: lastName });
+        await axios.put(`/api/students/${editingId}`, { first_name: firstName, last_name: lastName, age: age === "" ? null : Number(age), gender: gender || null, email: email || null, department_id: departmentId || null, course_id: courseId || null });
         setMessage("Student updated");
       } else {
-        await axios.post("/api/students", { first_name: firstName, last_name: lastName });
+        await axios.post("/api/students", { first_name: firstName, last_name: lastName, age: age === "" ? null : Number(age), gender: gender || null, email: email || null, department_id: departmentId || null, course_id: courseId || null });
         setMessage("Student added");
       }
       setFirstName("");
       setLastName("");
+      setAge("");
+      setGender("");
+      setEmail("");
+      setDepartmentId("");
+      setCourseId("");
       setEditingId(null);
       await fetchStudents();
     } catch (err) {
@@ -66,12 +116,176 @@ export default function Student() {
       console.error(err);
     }
   };
+  const content = (
+    React.createElement(
+      React.Fragment,
+      null,
+      // Header inside card
+      React.createElement(
+        "div",
+        { className: "card" },
+        React.createElement(
+          "div",
+          { className: "card-header" },
+          React.createElement("h2", null, "Students"),
+        ),
+        // Form - only show for admin and faculty
+        (user && (user.role === 'admin' || user.role === 'faculty')) && React.createElement(
+          "form",
+          { className: "post-form", onSubmit: handleSubmit },
+          error && React.createElement("div", { style: { background: '#ffdddd', color: '#900', padding: '8px', borderRadius: '6px' } }, error),
+          message && React.createElement("div", { style: { background: '#ddffdd', color: '#064', padding: '8px', borderRadius: '6px' } }, message),
+          React.createElement("input", {
+            type: "text",
+            placeholder: "First Name",
+            value: firstName,
+            onChange: (e) => setFirstName(e.target.value),
+          }),
+          React.createElement("input", {
+            type: "text",
+            placeholder: "Last Name",
+            value: lastName,
+            onChange: (e) => setLastName(e.target.value),
+          }),
+          React.createElement("input", {
+            type: "number",
+            placeholder: "Age",
+            value: age,
+            onChange: (e) => setAge(e.target.value),
+            min: 0,
+            max: 150,
+          }),
+          React.createElement(
+            "select",
+            {
+              value: gender,
+              onChange: (e) => setGender(e.target.value),
+            },
+            [
+              React.createElement("option", { key: "", value: "" }, "Select Gender (optional)"),
+              React.createElement("option", { key: "Male", value: "Male" }, "Male"),
+              React.createElement("option", { key: "Female", value: "Female" }, "Female"),
+            ]
+          ),
+          React.createElement("input", {
+            type: "email",
+            placeholder: "Email (optional)",
+            value: email,
+            onChange: (e) => setEmail(e.target.value),
+          }),
+          React.createElement(
+            "select",
+            { value: departmentId, onChange: (e) => setDepartmentId(e.target.value) },
+            [
+              React.createElement("option", { key: "", value: "" }, "Select Department (optional)"),
+              ...departments.map(d => React.createElement("option", { key: d.id, value: d.id }, d.name))
+            ]
+          ),
+          React.createElement(
+            "select",
+            { value: courseId, onChange: (e) => setCourseId(e.target.value) },
+            [
+              React.createElement("option", { key: "", value: "" }, "Select Course (optional)"),
+              ...courses.map(c => React.createElement("option", { key: c.id, value: c.id }, c.name))
+            ]
+          ),
+          React.createElement(
+            "div",
+            { className: "form-actions" },
+            React.createElement("button", { type: "submit", disabled: loading }, editingId ? (loading ? "Updating..." : "Update") : (loading ? "Adding..." : "Add Student")),
+            editingId && React.createElement(
+              "button",
+              { type: "button", className: "cancel-btn", onClick: () => { setFirstName(""); setLastName(""); setAge(""); setGender(""); setEmail(""); setDepartmentId(""); setCourseId(""); setEditingId(null); setError(""); setMessage(""); } },
+              "Cancel"
+            )
+          )
+        ),
+        // Filters - only show for admin and faculty
+        (user && (user.role === 'admin' || user.role === 'faculty')) && React.createElement(
+          "div",
+          { className: "filters", style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' } },
+          React.createElement(
+            "select",
+            { value: filterDepartmentId, onChange: (e) => setFilterDepartmentId(e.target.value) },
+            [
+              React.createElement("option", { key: "", value: "" }, "Filter by Department"),
+              ...departments.map(d => React.createElement("option", { key: d.id, value: d.id }, d.name))
+            ]
+          ),
+          React.createElement(
+            "select",
+            { value: filterCourseId, onChange: (e) => setFilterCourseId(e.target.value) },
+            [
+              React.createElement("option", { key: "", value: "" }, "Filter by Course"),
+              ...courses.map(c => React.createElement("option", { key: c.id, value: c.id }, c.name))
+            ]
+          )
+        ),
+        // Table
+        loading ? React.createElement("p", null, "Loading…") : (
+          React.createElement(
+            "table",
+            null,
+            React.createElement(
+              "thead",
+              null,
+              React.createElement(
+                "tr",
+                null,
+                ["ID", "First Name", "Last Name", "Age", "Gender", "Email", "Department Code", "Course ID", "Created At", user && (user.role === 'admin' || user.role === 'faculty' || user.role === 'student') ? "Actions" : ""].filter(h => h).map((h) => React.createElement("th", { key: h }, h))
+              )
+            ),
+            React.createElement(
+              "tbody",
+              null,
+              students.length > 0 ? (
+                students.map((s) => React.createElement(
+                  "tr",
+                  { key: s.id },
+                  React.createElement("td", null, s.id),
+                  React.createElement("td", null, s.first_name),
+                  React.createElement("td", null, s.last_name),
+                  React.createElement("td", null, s.age ?? ""),
+                  React.createElement("td", null, s.gender ?? ""),
+                  React.createElement("td", null, s.email ?? ""),
+                  React.createElement("td", null, s.department_id ? (departments.find(d => d.id === s.department_id)?.code || s.department_id) : ""),
+                  React.createElement("td", null, s.course_id ?? ""),
+                  React.createElement("td", null, new Date(s.created_at).toLocaleString()),
+                  React.createElement(
+                    "td",
+                    null,
+                    // Students can only edit their own profile, admin/faculty can edit any
+                    (user && (user.role === 'admin' || user.role === 'faculty' || (user.role === 'student' && s.email === user.email))) && React.createElement(
+                      "button",
+                      { onClick: () => { setEditingId(s.id); setFirstName(s.first_name); setLastName(s.last_name); setAge(s.age ?? ""); setGender(s.gender ?? ""); setEmail(s.email ?? ""); setDepartmentId(s.department_id ?? ""); setCourseId(s.course_id ?? ""); } },
+                      "Edit"
+                    ),
+                    // Only admin can delete
+                    (user && user.role === 'admin') && React.createElement(
+                      "button",
+                      { className: "delete-btn", onClick: () => handleDelete(s.id) },
+                      "Delete"
+                    )
+                  )
+                ))
+              ) : (
+                React.createElement("tr", null, React.createElement("td", { colSpan: 10 }, "No students found."))
+              )
+            )
+          )
+        )
+      )
+    )
+  );
 
+  if (embed) {
+    return React.createElement('div', { className: 'content' }, content);
+  }
+
+  // fallback: original full layout
   return React.createElement(
     "div",
     { className: "dashboard" },
-
-    // Sidebar
     React.createElement(
       "aside",
       { className: "sidebar" },
@@ -84,141 +298,19 @@ export default function Student() {
         )
       )
     ),
-
-    // Main section
     React.createElement(
       "div",
       { className: "main" },
-
-      // Topbar
       React.createElement(
         "header",
         { className: "topbar" },
         React.createElement("h1", null, "Student and Faculty Profile Management System"),
-        React.createElement("div", { className: "profile" },
-          React.createElement("img", { src: "/profile.png", alt: "profile" })
-        )
+        React.createElement("div", { className: "profile" }, React.createElement("img", { src: "/profile.png", alt: "profile" }))
       ),
-
-      // Content
       React.createElement(
         "section",
         { className: "content" },
-        React.createElement(
-          "div",
-          { className: "card" },
-
-          // Card header
-          React.createElement(
-            "div",
-            { className: "card-header" },
-            React.createElement("h2", null, "Students"),
-            
-          ),
-
-          // Form
-          React.createElement(
-            "form",
-            { className: "post-form", onSubmit: handleSubmit },
-            error && React.createElement("div", { style: { background: '#ffdddd', color: '#900', padding: '8px', borderRadius: '6px' } }, error),
-            message && React.createElement("div", { style: { background: '#ddffdd', color: '#064', padding: '8px', borderRadius: '6px' } }, message),
-            React.createElement("input", {
-              type: "text",
-              placeholder: "First Name",
-              value: firstName,
-              onChange: (e) => setFirstName(e.target.value),
-            }),
-            React.createElement("input", {
-              type: "text",
-              placeholder: "Last Name",
-              value: lastName,
-              onChange: (e) => setLastName(e.target.value),
-            }),
-            React.createElement(
-              "div",
-              { className: "form-actions" },
-              React.createElement("button", { type: "submit", disabled: loading }, editingId ? (loading ? "Updating..." : "Update") : (loading ? "Adding..." : "Add Student")),
-              editingId &&
-                React.createElement(
-                  "button",
-                  {
-                    type: "button",
-                    className: "cancel-btn",
-                    onClick: () => {
-                      setFirstName("");
-                      setLastName("");
-                      setEditingId(null);
-                      setError("");
-                      setMessage("");
-                    },
-                  },
-                  "Cancel"
-                )
-            )
-          ),
-
-          // Table
-          loading
-            ? React.createElement("p", null, "Loading…")
-            : React.createElement(
-                "table",
-                null,
-                React.createElement(
-                  "thead",
-                  null,
-                  React.createElement(
-                    "tr",
-                    null,
-                    ["ID", "First Name", "Last Name", "Created At", "Actions"].map((h) =>
-                      React.createElement("th", { key: h }, h)
-                    )
-                  )
-                ),
-                React.createElement(
-                  "tbody",
-                  null,
-                  students.length > 0
-                    ? students.map((s) =>
-                        React.createElement(
-                          "tr",
-                          { key: s.id },
-                          React.createElement("td", null, s.id),
-                          React.createElement("td", null, s.first_name),
-                          React.createElement("td", null, s.last_name),
-                          React.createElement("td", null, new Date(s.created_at).toLocaleString()),
-                          React.createElement(
-                            "td",
-                            null,
-                            React.createElement(
-                              "button",
-                              {
-                                onClick: () => {
-                                  setEditingId(s.id);
-                                  setFirstName(s.first_name);
-                                  setLastName(s.last_name);
-                                },
-                              },
-                              "Edit"
-                            ),
-                            React.createElement(
-                              "button",
-                              {
-                                className: "delete-btn",
-                                onClick: () => handleDelete(s.id),
-                              },
-                              "Delete"
-                            )
-                          )
-                        )
-                      )
-                    : React.createElement(
-                        "tr",
-                        null,
-                        React.createElement("td", { colSpan: 5 }, "No students found.")
-                      )
-                )
-              )
-        )
+        content
       )
     )
   );

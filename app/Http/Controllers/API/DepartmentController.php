@@ -125,14 +125,14 @@ class DepartmentController extends Controller
     {
         $user = Auth::user();
         
-        // Only admin can delete departments
+        // Only admin can archive departments
         if ($user->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized. Only admin can delete departments.'], 403);
+            return response()->json(['message' => 'Unauthorized. Only admin can archive departments.'], 403);
         }
 
         $department = Department::find($id);
         if (!$department) return response()->json(['message' => 'Not Found'], 404);
         $department->delete();
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Department archived successfully'], 200);
     }
 }

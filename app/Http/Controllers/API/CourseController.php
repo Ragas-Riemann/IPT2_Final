@@ -102,14 +102,14 @@ class CourseController extends Controller
     {
         $user = Auth::user();
         
-        // Only admin can delete courses
+        // Only admin can archive courses
         if ($user->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized. Only admin can delete courses.'], 403);
+            return response()->json(['message' => 'Unauthorized. Only admin can archive courses.'], 403);
         }
 
         $course = Course::find($id);
         if (!$course) return response()->json(['message' => 'Not Found'], 404);
         $course->delete();
-        return response()->json(null, 204);
+        return response()->json(['message' => 'Course archived successfully'], 200);
     }
 }

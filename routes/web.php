@@ -67,6 +67,10 @@ Route::prefix('api')->middleware('auth')->group(function () {
     // Archive routes
     Route::get('archive/students', [ArchiveController::class, 'archivedStudents']);
     Route::get('archive/faculty', [ArchiveController::class, 'archivedFaculty']);
+    Route::get('archive/departments', [ArchiveController::class, 'archivedDepartments']);
+    Route::get('archive/courses', [ArchiveController::class, 'archivedCourses']);
     Route::post('archive/students/{id}/restore', [ArchiveController::class, 'restoreStudent']);
     Route::post('archive/faculty/{id}/restore', [ArchiveController::class, 'restoreFaculty']);
+    Route::post('archive/departments/{id}/restore', [ArchiveController::class, 'restoreDepartment']);
+    Route::post('archive/courses/{id}/restore', [ArchiveController::class, 'restoreCourse']);
 });

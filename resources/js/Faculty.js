@@ -13,6 +13,7 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   const [departments, setDepartments] = useState([]);
   const [departmentId, setDepartmentId] = useState('');
   const [filterDepartmentId, setFilterDepartmentId] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -201,10 +202,32 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
           )
           )
         ),
+        // Search bar - available for all authenticated users
+        user && React.createElement(
+          'div',
+          { style: { marginTop: '16px', marginBottom: '12px' } },
+          React.createElement(
+            'input',
+            {
+              type: 'text',
+              placeholder: 'Search by faculty name...',
+              value: searchTerm,
+              onChange: (e) => setSearchTerm(e.target.value),
+              style: {
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                boxSizing: 'border-box'
+              }
+            }
+          )
+        ),
         // Filter dropdown - show for all authenticated users
         user && React.createElement(
           'div',
-          { className: 'filters', style: { display: 'flex', gap: '8px', marginTop: '8px', marginBottom: '8px' } },
+          { className: 'filters', style: { display: 'flex', gap: '8px', marginTop: '8px', marginBottom: '12px' } },
           React.createElement(
             'select',
             { 
@@ -221,7 +244,21 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
           React.createElement('table', null,
             React.createElement('thead', null, React.createElement('tr', null, ['ID','First Name','Last Name','Age','Gender','Email','Department Code','Created At', user && user.role === 'admin' ? 'Actions' : ''].filter(h => h).map(h=> React.createElement('th', { key:h }, h)))),
             React.createElement('tbody', null,
-              faculty.length>0 ? faculty.map(f=> (
+              (() => {
+                // Filter faculty based on search term (case-insensitive)
+                let filteredFaculty = faculty;
+                if (searchTerm.trim()) {
+                  const searchLower = searchTerm.toLowerCase().trim();
+                  filteredFaculty = faculty.filter(f => {
+                    const firstName = (f.first_name || '').toLowerCase();
+                    const lastName = (f.last_name || '').toLowerCase();
+                    const fullName = `${firstName} ${lastName}`.trim();
+                    return firstName.includes(searchLower) || 
+                           lastName.includes(searchLower) || 
+                           fullName.includes(searchLower);
+                  });
+                }
+                return filteredFaculty.length > 0 ? filteredFaculty.map(f=> (
                 React.createElement('tr', { key:f.id },
                   React.createElement('td', null, f.id),
                   React.createElement('td', null, f.first_name),
@@ -237,7 +274,10 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
                     React.createElement('button', { className:'delete-btn', onClick:()=>handleDelete(f.id) }, 'Archive')
                   )
                 )
-              )) : React.createElement('tr', null, React.createElement('td', { colSpan: user && user.role === 'admin' ? 10 : 9 }, 'No faculty found.'))
+                )) : (
+                  React.createElement('tr', null, React.createElement('td', { colSpan: user && user.role === 'admin' ? 10 : 9, style: { textAlign: 'center', padding: '20px' } }, searchTerm.trim() ? `No faculty found matching "${searchTerm}"` : 'No faculty found.'))
+                );
+              })()
             )
           )
         )

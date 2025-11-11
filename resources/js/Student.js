@@ -18,12 +18,16 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
   const [courseId, setCourseId] = useState("");
   const [filterDepartmentId, setFilterDepartmentId] = useState("");
   const [filterCourseId, setFilterCourseId] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedStudentProfile, setSelectedStudentProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   useEffect(() => {
     fetchUser();
@@ -195,6 +199,28 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
     finally { setLoading(false); }
   };
 
+  const handleViewProfile = async (studentId) => {
+    setLoadingProfile(true);
+    setShowProfileModal(true);
+    try {
+      const res = await axios.get('/api/students');
+      const students = res.data;
+      const studentProfile = students.find(s => s.id === studentId);
+      if (studentProfile) {
+        setSelectedStudentProfile(studentProfile);
+      } else {
+        setError('Student profile not found');
+        setShowProfileModal(false);
+      }
+    } catch (err) {
+      console.error('Failed to fetch student profile', err);
+      setError('Failed to load student profile');
+      setShowProfileModal(false);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!window.confirm("Archive this student? The student will be moved to the archive and automatically deleted after 1 year.")) return;
     try {
@@ -208,6 +234,15 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
       setMessage('');
     }
   };
+  // Helper function to render profile field
+  const renderProfileField = (label, value) => {
+    if (!value) return null;
+    return React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '150px 1fr', gap: '10px', marginBottom: '8px' } },
+      React.createElement('strong', { style: { color: '#333', fontWeight: '600' } }, `${label}:`),
+      React.createElement('span', { style: { color: '#555' } }, value)
+    );
+  };
+
   const content = (
     React.createElement(
       React.Fragment,
@@ -355,10 +390,32 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
           )
           )
         ),
+        // Search bar - available for all authenticated users
+        user && React.createElement(
+          "div",
+          { style: { marginTop: '16px', marginBottom: '12px' } },
+          React.createElement(
+            "input",
+            {
+              type: "text",
+              placeholder: "Search by student name...",
+              value: searchTerm,
+              onChange: (e) => setSearchTerm(e.target.value),
+              style: {
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                boxSizing: 'border-box'
+              }
+            }
+          )
+        ),
         // Filters - only show for admin and faculty
         (user && (user.role === 'admin' || user.role === 'faculty')) && React.createElement(
           "div",
-          { className: "filters", style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' } },
+          { className: "filters", style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px', marginBottom: '12px' } },
           React.createElement(
             "select",
             { 
@@ -404,8 +461,22 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
             React.createElement(
               "tbody",
               null,
-              students.length > 0 ? (
-                students.map((s) => React.createElement(
+              (() => {
+                // Filter students based on search term (case-insensitive)
+                let filteredStudents = students;
+                if (searchTerm.trim()) {
+                  const searchLower = searchTerm.toLowerCase().trim();
+                  filteredStudents = students.filter(s => {
+                    const firstName = (s.first_name || '').toLowerCase();
+                    const lastName = (s.last_name || '').toLowerCase();
+                    const fullName = `${firstName} ${lastName}`.trim();
+                    return firstName.includes(searchLower) || 
+                           lastName.includes(searchLower) || 
+                           fullName.includes(searchLower);
+                  });
+                }
+                return filteredStudents.length > 0 ? (
+                  filteredStudents.map((s) => React.createElement(
                   "tr",
                   { key: s.id },
                   React.createElement("td", null, s.id),
@@ -421,6 +492,24 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
                   (user && (user.role === 'admin' || user.role === 'student')) && React.createElement(
                     "td",
                     null,
+                    // View Profile button - available for all authenticated users
+                    React.createElement(
+                      "button",
+                      { 
+                        onClick: () => handleViewProfile(s.id),
+                        style: { 
+                          padding: '6px 12px', 
+                          backgroundColor: '#10b981', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '4px', 
+                          cursor: 'pointer',
+                          marginRight: '8px',
+                          fontSize: '13px'
+                        } 
+                      },
+                      "View Profile"
+                    ),
                     // Students can only edit their own profile, admin can edit any
                     (user && (user.role === 'admin' || (user.role === 'student' && s.email === user.email))) && React.createElement(
                       "button",
@@ -450,8 +539,255 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
                     )
                   )
                 ))
-              ) : (
-                React.createElement("tr", null, React.createElement("td", { colSpan: user && (user.role === 'admin' || user.role === 'student') ? 10 : 9 }, "No students found."))
+                ) : (
+                  React.createElement("tr", null, React.createElement("td", { colSpan: user && (user.role === 'admin' || user.role === 'student') ? 10 : 9, style: { textAlign: 'center', padding: '20px' } }, searchTerm.trim() ? `No students found matching "${searchTerm}"` : "No students found."))
+                );
+              })()
+            )
+          )
+        )
+      ),
+      // Profile Modal
+      showProfileModal && React.createElement(
+        'div',
+        {
+          style: {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          },
+          onClick: (e) => {
+            if (e.target === e.currentTarget) {
+              setShowProfileModal(false);
+              setSelectedStudentProfile(null);
+            }
+          }
+        },
+        React.createElement(
+          'div',
+          {
+            style: {
+              backgroundColor: 'white',
+              borderRadius: '8px',
+              maxWidth: '900px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              position: 'relative'
+            }
+          },
+          // Modal Header
+          React.createElement(
+            'div',
+            {
+              style: {
+                padding: '20px',
+                borderBottom: '1px solid #e0e0e0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                position: 'sticky',
+                top: 0,
+                backgroundColor: 'white',
+                zIndex: 10
+              }
+            },
+            React.createElement('h2', { style: { margin: 0, color: '#1a1a1a', fontWeight: '700' } }, 'Student Profile'),
+            React.createElement(
+              'button',
+              {
+                onClick: () => {
+                  setShowProfileModal(false);
+                  setSelectedStudentProfile(null);
+                },
+                style: {
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666',
+                  padding: '0',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }
+              },
+              '×'
+            )
+          ),
+          // Modal Content
+          React.createElement(
+            'div',
+            { style: { padding: '20px' } },
+            loadingProfile ? (
+              React.createElement('div', { style: { textAlign: 'center', padding: '40px' } },
+                React.createElement('p', null, 'Loading profile...')
+              )
+            ) : selectedStudentProfile ? (
+              React.createElement(React.Fragment, null,
+                // Personal Information
+                React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Personal Information'),
+                  renderProfileField('Name', `${selectedStudentProfile.first_name || ''} ${selectedStudentProfile.middle_name || ''} ${selectedStudentProfile.last_name || ''}`.trim() || 'Not set'),
+                  renderProfileField('Email', selectedStudentProfile.email || 'Not set'),
+                  renderProfileField('Age', selectedStudentProfile.age),
+                  renderProfileField('Gender', selectedStudentProfile.gender),
+                  renderProfileField('Date of Birth', selectedStudentProfile.date_of_birth ? new Date(selectedStudentProfile.date_of_birth).toLocaleDateString() : null),
+                  renderProfileField('Place of Birth', selectedStudentProfile.place_of_birth),
+                  renderProfileField('Blood Type', selectedStudentProfile.blood_type),
+                  renderProfileField('Height', selectedStudentProfile.height),
+                  renderProfileField('Civil Status', selectedStudentProfile.civil_status),
+                  renderProfileField('Religion', selectedStudentProfile.religion),
+                  renderProfileField('Citizenship', selectedStudentProfile.citizenship),
+                  renderProfileField('Language Spoken', selectedStudentProfile.language_spoken)
+                ),
+                // Address Information
+                (selectedStudentProfile.house_street_barangay || selectedStudentProfile.region || selectedStudentProfile.province || selectedStudentProfile.municipality) && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Address Information'),
+                  renderProfileField('House/Street/Barangay', selectedStudentProfile.house_street_barangay),
+                  renderProfileField('Region', selectedStudentProfile.region),
+                  renderProfileField('Province', selectedStudentProfile.province),
+                  renderProfileField('Municipality', selectedStudentProfile.municipality)
+                ),
+                // Contact Information
+                (selectedStudentProfile.contact_number_phone || selectedStudentProfile.mobile_number) && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Contact Information'),
+                  renderProfileField('Contact Number (Phone)', selectedStudentProfile.contact_number_phone),
+                  renderProfileField('Mobile Number', selectedStudentProfile.mobile_number)
+                ),
+                // Academic Information
+                React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Academic Information'),
+                  renderProfileField('Department', selectedStudentProfile.department_id ? (departments.find(d => d.id === selectedStudentProfile.department_id)?.name || departments.find(d => d.id === selectedStudentProfile.department_id)?.code || `ID: ${selectedStudentProfile.department_id}`) : 'Not set'),
+                  renderProfileField('Course', selectedStudentProfile.course_id ? (courses.find(c => c.id === selectedStudentProfile.course_id)?.name || `ID: ${selectedStudentProfile.course_id}`) : 'Not set'),
+                  renderProfileField('Intended Degree Program', selectedStudentProfile.intended_degree_program),
+                  renderProfileField('Is Working Student', selectedStudentProfile.is_working_student ? 'Yes' : (selectedStudentProfile.is_working_student === false ? 'No' : null)),
+                  selectedStudentProfile.is_working_student && renderProfileField('Employer Name', selectedStudentProfile.employer_name),
+                  selectedStudentProfile.is_working_student && renderProfileField('Employer Address', selectedStudentProfile.employer_address)
+                ),
+                // Educational Background
+                (selectedStudentProfile.elementary_school_name || selectedStudentProfile.junior_high_school_name || selectedStudentProfile.senior_high_school_name || selectedStudentProfile.college_school_name) && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Educational Background'),
+                  selectedStudentProfile.elementary_school_name && React.createElement('div', { style: { marginBottom: '15px' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'Elementary:'),
+                    renderProfileField('School Name', selectedStudentProfile.elementary_school_name),
+                    renderProfileField('Address', selectedStudentProfile.elementary_school_address),
+                    renderProfileField('Year Graduated', selectedStudentProfile.elementary_year_graduated),
+                    renderProfileField('School Type', selectedStudentProfile.elementary_school_type)
+                  ),
+                  selectedStudentProfile.junior_high_school_name && React.createElement('div', { style: { marginBottom: '15px' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'Junior High School:'),
+                    renderProfileField('School Name', selectedStudentProfile.junior_high_school_name),
+                    renderProfileField('Address', selectedStudentProfile.junior_high_school_address),
+                    renderProfileField('Year Graduated', selectedStudentProfile.junior_high_year_graduated),
+                    renderProfileField('School Type', selectedStudentProfile.junior_high_school_type)
+                  ),
+                  selectedStudentProfile.senior_high_school_name && React.createElement('div', { style: { marginBottom: '15px' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'Senior High School:'),
+                    renderProfileField('School Name', selectedStudentProfile.senior_high_school_name),
+                    renderProfileField('Address', selectedStudentProfile.senior_high_school_address),
+                    renderProfileField('Year Graduated', selectedStudentProfile.senior_high_year_graduated),
+                    renderProfileField('School Type', selectedStudentProfile.senior_high_school_type)
+                  ),
+                  selectedStudentProfile.college_school_name && React.createElement('div', { style: { marginBottom: '15px' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'College:'),
+                    renderProfileField('School Name', selectedStudentProfile.college_school_name),
+                    renderProfileField('Address', selectedStudentProfile.college_school_address),
+                    renderProfileField('Year Graduated', selectedStudentProfile.college_year_graduated),
+                    renderProfileField('School Type', selectedStudentProfile.college_school_type)
+                  )
+                ),
+                // Family Background
+                (selectedStudentProfile.mother_family_name || selectedStudentProfile.father_family_name || selectedStudentProfile.number_of_brothers || selectedStudentProfile.number_of_sisters) && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Family Background'),
+                  selectedStudentProfile.mother_family_name && React.createElement('div', { style: { marginBottom: '15px' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'Mother:'),
+                    renderProfileField('Name', `${selectedStudentProfile.mother_family_name || ''} ${selectedStudentProfile.mother_given_name || ''} ${selectedStudentProfile.mother_middle_name || ''}`.trim()),
+                    renderProfileField('Occupation', selectedStudentProfile.mother_occupation),
+                    renderProfileField('Address', selectedStudentProfile.mother_home_address),
+                    renderProfileField('Town/City', selectedStudentProfile.mother_town_city),
+                    renderProfileField('Province', selectedStudentProfile.mother_province),
+                    renderProfileField('Contact Number', selectedStudentProfile.mother_contact_number),
+                    renderProfileField('Mobile Number', selectedStudentProfile.mother_mobile_number)
+                  ),
+                  selectedStudentProfile.father_family_name && React.createElement('div', { style: { marginBottom: '15px' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'Father:'),
+                    renderProfileField('Name', `${selectedStudentProfile.father_family_name || ''} ${selectedStudentProfile.father_given_name || ''} ${selectedStudentProfile.father_middle_name || ''}`.trim()),
+                    renderProfileField('Occupation', selectedStudentProfile.father_occupation),
+                    renderProfileField('Address', selectedStudentProfile.father_home_address),
+                    renderProfileField('Town/City', selectedStudentProfile.father_town_city),
+                    renderProfileField('Province', selectedStudentProfile.father_province),
+                    renderProfileField('Contact Number', selectedStudentProfile.father_contact_number),
+                    renderProfileField('Mobile Number', selectedStudentProfile.father_mobile_number)
+                  ),
+                  (selectedStudentProfile.number_of_brothers || selectedStudentProfile.number_of_sisters) && React.createElement('div', { style: { marginBottom: '15px' } },
+                    renderProfileField('Number of Brothers', selectedStudentProfile.number_of_brothers),
+                    renderProfileField('Number of Sisters', selectedStudentProfile.number_of_sisters)
+                  )
+                ),
+                // Guardian Information
+                selectedStudentProfile.guardian_family_name && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Guardian Information'),
+                  renderProfileField('Name', `${selectedStudentProfile.guardian_family_name || ''} ${selectedStudentProfile.guardian_given_name || ''} ${selectedStudentProfile.guardian_middle_name || ''}`.trim()),
+                  renderProfileField('Relationship', selectedStudentProfile.guardian_relationship),
+                  renderProfileField('Address', selectedStudentProfile.guardian_home_address),
+                  renderProfileField('Contact Number', selectedStudentProfile.guardian_contact_number),
+                  renderProfileField('Mobile Number', selectedStudentProfile.guardian_mobile_number)
+                ),
+                // Emergency Contact
+                selectedStudentProfile.emergency_contact_name && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Emergency Contact'),
+                  renderProfileField('Name', selectedStudentProfile.emergency_contact_name),
+                  renderProfileField('Contact Number', selectedStudentProfile.emergency_contact_number)
+                ),
+                // Additional Information
+                (selectedStudentProfile.is_indigenous_peoples_member || selectedStudentProfile.has_disability || selectedStudentProfile.is_single_parent_dependent || selectedStudentProfile.has_special_needs) && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Additional Information'),
+                  renderProfileField('Indigenous Peoples Member', selectedStudentProfile.is_indigenous_peoples_member ? 'Yes' : (selectedStudentProfile.is_indigenous_peoples_member === false ? 'No' : null)),
+                  selectedStudentProfile.is_indigenous_peoples_member && renderProfileField('Indigenous Tribe', selectedStudentProfile.indigenous_tribe),
+                  renderProfileField('Has Disability', selectedStudentProfile.has_disability ? 'Yes' : (selectedStudentProfile.has_disability === false ? 'No' : null)),
+                  selectedStudentProfile.has_disability && renderProfileField('Disability Specification', selectedStudentProfile.disability_specification),
+                  renderProfileField('Single Parent Dependent', selectedStudentProfile.is_single_parent_dependent ? 'Yes' : (selectedStudentProfile.is_single_parent_dependent === false ? 'No' : null)),
+                  renderProfileField('Has Special Needs', selectedStudentProfile.has_special_needs ? 'Yes' : (selectedStudentProfile.has_special_needs === false ? 'No' : null)),
+                  selectedStudentProfile.has_special_needs && renderProfileField('Special Needs Specification', selectedStudentProfile.special_needs_specification)
+                ),
+                // Close button
+                React.createElement('div', { style: { marginTop: '20px', textAlign: 'center' } },
+                  React.createElement(
+                    'button',
+                    {
+                      onClick: () => {
+                        setShowProfileModal(false);
+                        setSelectedStudentProfile(null);
+                      },
+                      style: {
+                        padding: '10px 20px',
+                        backgroundColor: '#667eea',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }
+                    },
+                    'Close'
+                  )
+                )
+              )
+            ) : (
+              React.createElement('div', { style: { textAlign: 'center', padding: '40px' } },
+                React.createElement('p', null, 'No profile data available.')
               )
             )
           )

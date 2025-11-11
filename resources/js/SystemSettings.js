@@ -18,6 +18,7 @@ export default function SystemSettings({ embed = false }){
   const [deptDean, setDeptDean] = useState('');
   const [editingDeptId, setEditingDeptId] = useState(null);
   const [showDeptForm, setShowDeptForm] = useState(false);
+  const [searchDeptTerm, setSearchDeptTerm] = useState('');
   
   // Course form state
   const [courseName, setCourseName] = useState('');
@@ -25,6 +26,7 @@ export default function SystemSettings({ embed = false }){
   const [courseStatus, setCourseStatus] = useState('Open');
   const [editingCourseId, setEditingCourseId] = useState(null);
   const [showCourseForm, setShowCourseForm] = useState(false);
+  const [searchCourseTerm, setSearchCourseTerm] = useState('');
 
   useEffect(() => {
     try {
@@ -40,10 +42,13 @@ export default function SystemSettings({ embed = false }){
     if (selectedDepartment) {
       try {
         fetchCoursesByDepartment(selectedDepartment.id);
+        setSearchCourseTerm(''); // Reset course search when department changes
       } catch (e) {
         console.error('Error fetching courses:', e);
         setError('Failed to load courses');
       }
+    } else {
+      setSearchCourseTerm(''); // Reset course search when going back to departments
     }
   }, [selectedDepartment]);
 
@@ -341,10 +346,44 @@ export default function SystemSettings({ embed = false }){
               }, 'Cancel')
             )
           )
+        ),
+        // Search bar for departments
+        user && React.createElement(
+          'div',
+          { style: { marginTop: '16px', marginBottom: '12px' } },
+          React.createElement(
+            'input',
+            {
+              type: 'text',
+              placeholder: 'Search by department name...',
+              value: searchDeptTerm,
+              onChange: (e) => setSearchDeptTerm(e.target.value),
+              style: {
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                boxSizing: 'border-box'
+              }
+            }
+          )
         )
       ),
       loading ? React.createElement('div', { className: 'loading-state' }, React.createElement('p', null, 'Loading…')) : React.createElement('div', { className: 'grid' },
-        departments.length > 0 ? departments.map(departmentCard) : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, 'No departments found.'))
+        (() => {
+          // Filter departments based on search term (case-insensitive)
+          let filteredDepartments = departments;
+          if (searchDeptTerm.trim()) {
+            const searchLower = searchDeptTerm.toLowerCase().trim();
+            filteredDepartments = departments.filter(d => {
+              const name = (d.name || '').toLowerCase();
+              const code = (d.code || '').toLowerCase();
+              return name.includes(searchLower) || code.includes(searchLower);
+            });
+          }
+          return filteredDepartments.length > 0 ? filteredDepartments.map(departmentCard) : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, searchDeptTerm.trim() ? `No departments found matching "${searchDeptTerm}"` : 'No departments found.'));
+        })()
       )
     )
   );
@@ -365,6 +404,7 @@ export default function SystemSettings({ embed = false }){
                 setCourseDescription('');
                 setCourseStatus('Open');
                 setShowCourseForm(false);
+                setSearchCourseTerm(''); // Reset course search when going back
               },
               style: { padding: '8px 16px', fontSize: '0.875rem' }
             }, '← Back to Departments'),
@@ -421,10 +461,44 @@ export default function SystemSettings({ embed = false }){
               }, 'Cancel')
             )
           )
+        ),
+        // Search bar for courses
+        user && React.createElement(
+          'div',
+          { style: { marginTop: '16px', marginBottom: '12px' } },
+          React.createElement(
+            'input',
+            {
+              type: 'text',
+              placeholder: 'Search by course name...',
+              value: searchCourseTerm,
+              onChange: (e) => setSearchCourseTerm(e.target.value),
+              style: {
+                width: '100%',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '1px solid #ddd',
+                borderRadius: '6px',
+                boxSizing: 'border-box'
+              }
+            }
+          )
         )
       ),
       loading ? React.createElement('div', { className: 'loading-state' }, React.createElement('p', null, 'Loading…')) : React.createElement('div', { className: 'grid' },
-        courses.length > 0 ? courses.map(courseCard) : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, 'No courses found for this department.'))
+        (() => {
+          // Filter courses based on search term (case-insensitive)
+          let filteredCourses = courses;
+          if (searchCourseTerm.trim()) {
+            const searchLower = searchCourseTerm.toLowerCase().trim();
+            filteredCourses = courses.filter(c => {
+              const name = (c.name || '').toLowerCase();
+              const description = (c.description || '').toLowerCase();
+              return name.includes(searchLower) || description.includes(searchLower);
+            });
+          }
+          return filteredCourses.length > 0 ? filteredCourses.map(courseCard) : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, searchCourseTerm.trim() ? `No courses found matching "${searchCourseTerm}"` : 'No courses found for this department.'));
+        })()
       )
     )
   );

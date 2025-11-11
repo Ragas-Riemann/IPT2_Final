@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use App\Models\User;
+use App\Models\Student;
+use App\Models\Faculty;
 
 class AuthController extends Controller
 {
@@ -48,6 +50,7 @@ class AuthController extends Controller
         $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
+            'date_of_birth' => 'nullable|date',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:admin,faculty,student',
@@ -56,12 +59,42 @@ class AuthController extends Controller
         // Combine first name and last name for the user's name field
         $fullName = trim($request->first_name . ' ' . $request->last_name);
 
+        // Calculate age from date of birth if provided
+        $age = null;
+        if ($request->date_of_birth) {
+            $birthDate = new \DateTime($request->date_of_birth);
+            $today = new \DateTime();
+            $age = $today->diff($birthDate)->y;
+        }
+
         $user = User::create([
             'name' => $fullName,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
         ]);
+
+        // If role is student, create student record with date of birth and age
+        if ($request->role === 'student') {
+            Student::create([
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'date_of_birth' => $request->date_of_birth ?? null,
+                'age' => $age,
+            ]);
+        }
+
+        // If role is faculty, create faculty record with date of birth and age
+        if ($request->role === 'faculty') {
+            Faculty::create([
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'date_of_birth' => $request->date_of_birth ?? null,
+                'age' => $age,
+            ]);
+        }
 
         Auth::login($user);
 

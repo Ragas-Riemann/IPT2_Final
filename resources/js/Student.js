@@ -6,6 +6,7 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
   const [students, setStudents] = useState([]);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [age, setAge] = useState("");
   const [gender, setGender] = useState("");
   const [email, setEmail] = useState("");
@@ -22,6 +23,7 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [user, setUser] = useState(null);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     fetchUser();
@@ -63,6 +65,31 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
       setCourseId(''); // Reset course when department is cleared
     }
   }, [departmentId]);
+
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return '';
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age > 0 ? String(age) : '';
+  };
+
+  // Auto-calculate age when date of birth changes
+  useEffect(() => {
+    if (dateOfBirth) {
+      const calculatedAge = calculateAge(dateOfBirth);
+      if (calculatedAge) {
+        setAge(calculatedAge);
+      }
+    } else {
+      setAge('');
+    }
+  }, [dateOfBirth]);
 
   const fetchStudents = async () => {
     setLoading(true);
@@ -142,21 +169,23 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
     try {
       setLoading(true);
       if (editingId) {
-        await axios.put(`/api/students/${editingId}`, { first_name: firstName, last_name: lastName, age: age === "" ? null : Number(age), gender: gender || null, email: email, department_id: departmentId || null, course_id: courseId || null });
+        await axios.put(`/api/students/${editingId}`, { first_name: firstName, last_name: lastName, date_of_birth: dateOfBirth || null, age: age === "" ? null : Number(age), gender: gender || null, email: email, department_id: departmentId || null, course_id: courseId || null });
         setMessage("Student updated");
       } else {
-        const response = await axios.post("/api/students", { first_name: firstName, last_name: lastName, age: age === "" ? null : Number(age), gender: gender || null, email: email, department_id: departmentId || null, course_id: courseId || null });
+        const response = await axios.post("/api/students", { first_name: firstName, last_name: lastName, date_of_birth: dateOfBirth || null, age: age === "" ? null : Number(age), gender: gender || null, email: email, department_id: departmentId || null, course_id: courseId || null });
         // Use message from server if available, otherwise use default
         setMessage(response.data?.message || "Student added and account created successfully. Default password: 123456");
       }
       setFirstName("");
       setLastName("");
+      setDateOfBirth("");
       setAge("");
       setGender("");
       setEmail("");
       setDepartmentId("");
       setCourseId("");
       setEditingId(null);
+      setShowForm(false);
       await fetchStudents();
     } catch (err) {
       console.error(err);
@@ -185,15 +214,38 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
         { className: "card" },
         React.createElement(
           "div",
-          { className: "card-header" },
+          { className: "card-header", style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
           React.createElement("h2", null, "Students"),
+          // Register Student button - only show for admin
+          (user && user.role === 'admin' && !showForm && !editingId) && React.createElement(
+            "button",
+            { 
+              type: "button",
+              onClick: () => setShowForm(true),
+              style: { 
+                padding: '10px 20px', 
+                backgroundColor: '#667eea', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '6px', 
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '14px'
+              }
+            },
+            "Register Student"
+          ),
         ),
-        // Form - only show for admin
-        (user && user.role === 'admin') && React.createElement(
-          "form",
-          { className: "post-form", onSubmit: handleSubmit },
-          error && React.createElement("div", { style: { background: '#ffdddd', color: '#900', padding: '8px', borderRadius: '6px' } }, error),
-          message && React.createElement("div", { style: { background: '#ddffdd', color: '#064', padding: '8px', borderRadius: '6px' } }, message),
+        // Form - only show for admin and when showForm is true or editingId exists
+        (user && user.role === 'admin' && (showForm || editingId)) && React.createElement(
+          React.Fragment,
+          null,
+          React.createElement("h3", { style: { margin: '20px 0 10px 0', color: '#333', fontWeight: '600' } }, editingId ? "Edit Student" : "Register Student"),
+          React.createElement(
+            "form",
+            { className: "post-form", onSubmit: handleSubmit },
+            error && React.createElement("div", { style: { background: '#ffdddd', color: '#900', padding: '8px', borderRadius: '6px' } }, error),
+            message && React.createElement("div", { style: { background: '#ddffdd', color: '#064', padding: '8px', borderRadius: '6px' } }, message),
           React.createElement("input", {
             type: "text",
             placeholder: "First Name *",
@@ -209,10 +261,18 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
             required: true,
           }),
           React.createElement("input", {
+            type: "date",
+            placeholder: "Birthday",
+            value: dateOfBirth,
+            onChange: (e) => setDateOfBirth(e.target.value),
+            style: { marginBottom: '10px' }
+          }),
+          React.createElement("input", {
             type: "number",
-            placeholder: "Age",
+            placeholder: "Age (auto-calculated)",
             value: age,
-            onChange: (e) => setAge(e.target.value),
+            readOnly: true,
+            style: { background: '#f5f5f5', cursor: 'not-allowed', marginBottom: '10px' },
             min: 0,
             max: 150,
           }),
@@ -266,11 +326,29 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
             "div",
             { className: "form-actions" },
             React.createElement("button", { type: "submit", disabled: loading }, editingId ? (loading ? "Updating..." : "Update") : (loading ? "Adding..." : "Add Student")),
-            editingId && React.createElement(
+            React.createElement(
               "button",
-              { type: "button", className: "cancel-btn", onClick: () => { setFirstName(""); setLastName(""); setAge(""); setGender(""); setEmail(""); setDepartmentId(""); setCourseId(""); setEditingId(null); setError(""); setMessage(""); } },
+              { 
+                type: "button", 
+                className: "cancel-btn", 
+                onClick: () => { 
+                  setFirstName(""); 
+                  setLastName(""); 
+                  setDateOfBirth(""); 
+                  setAge(""); 
+                  setGender(""); 
+                  setEmail(""); 
+                  setDepartmentId(""); 
+                  setCourseId(""); 
+                  setEditingId(null); 
+                  setError(""); 
+                  setMessage(""); 
+                  setShowForm(false);
+                } 
+              },
               "Cancel"
             )
+          )
           )
         ),
         // Filters - only show for admin and faculty
@@ -346,11 +424,13 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
                           setEditingId(s.id); 
                           setFirstName(s.first_name); 
                           setLastName(s.last_name); 
+                          setDateOfBirth(s.date_of_birth ?? ""); 
                           setAge(s.age ?? ""); 
                           setGender(s.gender ?? ""); 
                           setEmail(s.email ?? ""); 
                           setDepartmentId(s.department_id ?? ""); 
                           setCourseId(s.course_id ?? "");
+                          setShowForm(true);
                           // Fetch courses for the department if one is set
                           if (s.department_id) {
                             fetchCoursesByDepartmentForForm(s.department_id);

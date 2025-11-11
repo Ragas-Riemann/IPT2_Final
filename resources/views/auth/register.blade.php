@@ -167,6 +167,20 @@
             </div>
 
             <div class="form-group">
+                <label for="date_of_birth">Birthday</label>
+                <input 
+                    type="date" 
+                    id="date_of_birth" 
+                    name="date_of_birth" 
+                    value="{{ old('date_of_birth') }}" 
+                    placeholder="Select your birthday"
+                >
+                @error('date_of_birth')
+                    <div class="error">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="form-group">
                 <label for="email">Email Address</label>
                 <input 
                     type="email" 

@@ -182,6 +182,13 @@ class StudentController extends Controller
             return response()->json(['message' => 'Unauthorized. Only admin can add students.'], 403);
         }
 
+        // Calculate age from date of birth if provided
+        if (isset($validated['date_of_birth']) && $validated['date_of_birth']) {
+            $birthDate = new \DateTime($validated['date_of_birth']);
+            $today = new \DateTime();
+            $validated['age'] = $today->diff($birthDate)->y;
+        }
+
         // Use database transaction to ensure both user and student are created atomically
         try {
             return DB::transaction(function () use ($validated) {
@@ -376,6 +383,13 @@ class StudentController extends Controller
                 $validated['profile_image'] = $student->profile_image;
             }
             \Log::info('No new image uploaded, preserving existing: ' . ($student->profile_image ?? 'none'));
+        }
+
+        // Calculate age from date of birth if provided
+        if (isset($validated['date_of_birth']) && $validated['date_of_birth']) {
+            $birthDate = new \DateTime($validated['date_of_birth']);
+            $today = new \DateTime();
+            $validated['age'] = $today->diff($birthDate)->y;
         }
 
         // Convert string booleans to actual booleans for FormData

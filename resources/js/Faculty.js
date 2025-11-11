@@ -6,6 +6,7 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   const [faculty, setFaculty] = useState([]);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState('');
   const [email, setEmail] = useState('');
@@ -17,6 +18,7 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [user, setUser] = useState(null);
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(()=>{ fetchUser(); fetchAll(); fetchDepartments(); },[]);
 
@@ -24,6 +26,31 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
     // refetch list when filter changes
     fetchAll();
   }, [filterDepartmentId]);
+
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return '';
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age > 0 ? String(age) : '';
+  };
+
+  // Auto-calculate age when date of birth changes
+  useEffect(() => {
+    if (dateOfBirth) {
+      const calculatedAge = calculateAge(dateOfBirth);
+      if (calculatedAge) {
+        setAge(calculatedAge);
+      }
+    } else {
+      setAge('');
+    }
+  }, [dateOfBirth]);
 
   const fetchUser = async () => {
     try {
@@ -49,25 +76,38 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   async function handleSubmit(e){
     e.preventDefault();
     setError(''); setMessage('');
-    if(!firstName || !lastName){ setError('Fill all fields'); return; }
+    if(!firstName || !lastName || !email){
+      setError('Please fill in all required fields (First Name, Last Name, and Email)');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
     setLoading(true);
     try{
       const payload = {
         first_name:firstName,
         last_name:lastName,
+        date_of_birth: dateOfBirth || null,
         age: age === '' ? null : Number(age),
         gender: gender || null,
-        email: email || null,
+        email: email,
         department_id: departmentId || null,
       };
       if(editingId){
         await axios.put(`/api/faculty/${editingId}`, payload);
         setMessage('Faculty updated');
       }else{
-        await axios.post('/api/faculty', payload);
-        setMessage('Faculty added');
+        const response = await axios.post('/api/faculty', payload);
+        setMessage(response.data?.message || 'Faculty added and account created successfully. Default password: 123456');
       }
-      setFirstName(''); setLastName(''); setAge(''); setGender(''); setEmail(''); setDepartmentId(''); setEditingId(null);
+      setFirstName(''); setLastName(''); setDateOfBirth(''); setAge(''); setGender(''); setEmail(''); setDepartmentId(''); setEditingId(null);
+      setShowForm(false);
       await fetchAll();
     }catch(e){
       const apiMsg = e?.response?.data?.message || Object.values(e?.response?.data || {})?.[0] || e.message;
@@ -87,26 +127,69 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   const content = (
     React.createElement(React.Fragment, null,
       React.createElement('div', { className:'card' },
-        React.createElement('div', { className:'card-header' }, React.createElement('h2', null, 'Faculty')),
-        // Form - only show for admin
-        (user && user.role === 'admin') && React.createElement('form', { className:'post-form', onSubmit: handleSubmit },
+        React.createElement('div', { className:'card-header', style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+          React.createElement('h2', null, 'Faculty'),
+          // Register Faculty button - only show for admin
+          (user && user.role === 'admin' && !showForm && !editingId) && React.createElement(
+            'button',
+            { 
+              type: 'button',
+              onClick: () => setShowForm(true),
+              style: { 
+                padding: '10px 20px', 
+                backgroundColor: '#667eea', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '6px', 
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '14px'
+              }
+            },
+            'Register Faculty'
+          ),
+        ),
+        // Form - only show for admin and when showForm is true or editingId exists
+        (user && user.role === 'admin' && (showForm || editingId)) && React.createElement(
+          React.Fragment,
+          null,
+          React.createElement('h3', { style: { margin: '20px 0 10px 0', color: '#333', fontWeight: '600' } }, editingId ? 'Edit Faculty' : 'Register Faculty'),
+          React.createElement('form', { className:'post-form', onSubmit: handleSubmit },
           error && React.createElement('div', { style:{background:'#ffdddd', color:'#900', padding:'8px', borderRadius:'6px'} }, error),
           message && React.createElement('div', { style:{background:'#ddffdd', color:'#064', padding:'8px', borderRadius:'6px'} }, message),
-          React.createElement('input', { type:'text', placeholder:'First Name', value:firstName, onChange:e=>setFirstName(e.target.value) }),
-          React.createElement('input', { type:'text', placeholder:'Last Name', value:lastName, onChange:e=>setLastName(e.target.value) }),
-          React.createElement('input', { type:'number', placeholder:'Age (optional)', value:age, onChange:e=>setAge(e.target.value), min:0, max:150 }),
+          React.createElement('input', { type:'text', placeholder:'First Name *', value:firstName, onChange:e=>setFirstName(e.target.value), required:true }),
+          React.createElement('input', { type:'text', placeholder:'Last Name *', value:lastName, onChange:e=>setLastName(e.target.value), required:true }),
+          React.createElement('input', { type:'date', placeholder:'Birthday', value:dateOfBirth, onChange:e=>setDateOfBirth(e.target.value), style:{marginBottom:'10px'} }),
+          React.createElement('input', { type:'number', placeholder:'Age (auto-calculated)', value:age, readOnly:true, style:{background:'#f5f5f5', cursor:'not-allowed', marginBottom:'10px'}, min:0, max:150 }),
           React.createElement('select', { value:gender, onChange:e=>setGender(e.target.value) },
             React.createElement('option', { value:'' }, 'Select Gender (optional)'),
             React.createElement('option', { value:'Male' }, 'Male'),
             React.createElement('option', { value:'Female' }, 'Female')
           ),
-          React.createElement('input', { type:'email', placeholder:'Email (optional)', value:email, onChange:e=>setEmail(e.target.value) }),
+          React.createElement('input', { type:'email', placeholder:'Email *', value:email, onChange:e=>setEmail(e.target.value), required:true }),
           React.createElement('select', { value:departmentId, onChange:e=>setDepartmentId(e.target.value) },
             [React.createElement('option', { key:'', value:'' }, 'Select Department (optional)'), ...departments.map(d=> React.createElement('option', { key:d.id, value:d.id }, d.name))]
           ),
           React.createElement('div', { className:'form-actions' },
             React.createElement('button', { type:'submit', disabled:loading }, editingId ? (loading?'Updating...':'Update') : (loading?'Adding...':'Add Faculty')),
-            editingId && React.createElement('button', { type:'button', className:'cancel-btn', onClick:()=>{ setFirstName(''); setLastName(''); setAge(''); setGender(''); setEmail(''); setDepartmentId(''); setEditingId(null); setError(''); setMessage(''); } }, 'Cancel')
+            React.createElement('button', { 
+              type:'button', 
+              className:'cancel-btn', 
+              onClick:()=>{ 
+                setFirstName(''); 
+                setLastName(''); 
+                setDateOfBirth(''); 
+                setAge(''); 
+                setGender(''); 
+                setEmail(''); 
+                setDepartmentId(''); 
+                setEditingId(null); 
+                setError(''); 
+                setMessage(''); 
+                setShowForm(false);
+              } 
+            }, 'Cancel')
+          )
           )
         ),
         // Filter dropdown - show for all authenticated users
@@ -141,7 +224,7 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
                   React.createElement('td', null, new Date(f.created_at).toLocaleString()),
                   // Only admin can edit/delete faculty
                   (user && user.role === 'admin') && React.createElement('td', null,
-                    React.createElement('button', { onClick:()=>{ setEditingId(f.id); setFirstName(f.first_name); setLastName(f.last_name); setAge(f.age ?? ''); setGender(f.gender ?? ''); setEmail(f.email ?? ''); setDepartmentId(f.department_id ?? ''); } }, 'Edit'),
+                    React.createElement('button', { onClick:()=>{ setEditingId(f.id); setFirstName(f.first_name); setLastName(f.last_name); setDateOfBirth(f.date_of_birth ?? ''); setAge(f.age ?? ''); setGender(f.gender ?? ''); setEmail(f.email ?? ''); setDepartmentId(f.department_id ?? ''); setShowForm(true); } }, 'Edit'),
                     React.createElement('button', { className:'delete-btn', onClick:()=>handleDelete(f.id) }, 'Delete')
                   )
                 )

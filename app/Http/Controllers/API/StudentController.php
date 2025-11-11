@@ -412,15 +412,15 @@ class StudentController extends Controller
     {
         $user = Auth::user();
         
-        // Only admin can delete students
+        // Only admin can archive students
         if ($user->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized. Only admin can delete students.'], 403);
+            return response()->json(['message' => 'Unauthorized. Only admin can archive students.'], 403);
         }
 
         $student = Student::find($id);
         if (!$student) return response()->json(['message' => 'Not Found'], 404);
-        $student->delete();
-        return response()->json(null, 204);
+        $student->delete(); // Soft delete (archive)
+        return response()->json(['message' => 'Student archived successfully'], 200);
     }
 }
 

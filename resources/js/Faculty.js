@@ -116,8 +116,17 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   }
 
   async function handleDelete(id){
-    if(!window.confirm('Delete this faculty?')) return;
-    try{ await axios.delete(`/api/faculty/${id}`); fetchAll(); }catch(e){ console.error(e); }
+    if(!window.confirm('Archive this faculty? The faculty will be moved to the archive and automatically deleted after 1 year.')) return;
+    try{ 
+      const response = await axios.delete(`/api/faculty/${id}`);
+      setMessage(response.data?.message || 'Faculty archived successfully');
+      setError('');
+      fetchAll(); 
+    }catch(e){ 
+      const apiMsg = e?.response?.data?.message || e.message;
+      setError(typeof apiMsg === 'string' ? apiMsg : 'Failed to archive faculty');
+      setMessage('');
+    }
   }
 
   async function fetchDepartments(){
@@ -225,7 +234,7 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
                   // Only admin can edit/delete faculty
                   (user && user.role === 'admin') && React.createElement('td', null,
                     React.createElement('button', { onClick:()=>{ setEditingId(f.id); setFirstName(f.first_name); setLastName(f.last_name); setDateOfBirth(f.date_of_birth ?? ''); setAge(f.age ?? ''); setGender(f.gender ?? ''); setEmail(f.email ?? ''); setDepartmentId(f.department_id ?? ''); setShowForm(true); } }, 'Edit'),
-                    React.createElement('button', { className:'delete-btn', onClick:()=>handleDelete(f.id) }, 'Delete')
+                    React.createElement('button', { className:'delete-btn', onClick:()=>handleDelete(f.id) }, 'Archive')
                   )
                 )
               )) : React.createElement('tr', null, React.createElement('td', { colSpan: user && user.role === 'admin' ? 10 : 9 }, 'No faculty found.'))

@@ -7,6 +7,7 @@ use App\Http\Controllers\API\FacultyController;
 use App\Http\Controllers\API\DepartmentController;
 use App\Http\Controllers\API\CourseController;
 use App\Http\Controllers\API\UserController;
+use App\Http\Controllers\API\ArchiveController;
 use App\Http\Controllers\AuthController;
 
 // Public routes
@@ -62,4 +63,10 @@ Route::prefix('api')->middleware('auth')->group(function () {
     Route::apiResource('faculty', FacultyController::class);
     Route::apiResource('departments', DepartmentController::class);
     Route::apiResource('courses', CourseController::class);
+    
+    // Archive routes
+    Route::get('archive/students', [ArchiveController::class, 'archivedStudents']);
+    Route::get('archive/faculty', [ArchiveController::class, 'archivedFaculty']);
+    Route::post('archive/students/{id}/restore', [ArchiveController::class, 'restoreStudent']);
+    Route::post('archive/faculty/{id}/restore', [ArchiveController::class, 'restoreFaculty']);
 });

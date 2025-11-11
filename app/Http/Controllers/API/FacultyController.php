@@ -207,14 +207,14 @@ class FacultyController extends Controller
     {
         $user = Auth::user();
         
-        // Only admin can delete faculty
+        // Only admin can archive faculty
         if ($user->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized. Only admin can delete faculty.'], 403);
+            return response()->json(['message' => 'Unauthorized. Only admin can archive faculty.'], 403);
         }
 
         $faculty = Faculty::find($id);
         if (!$faculty) return response()->json(['message' => 'Not Found'], 404);
-        $faculty->delete();
-        return response()->json(null, 204);
+        $faculty->delete(); // Soft delete (archive)
+        return response()->json(['message' => 'Faculty archived successfully'], 200);
     }
 }

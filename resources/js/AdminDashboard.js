@@ -5,6 +5,7 @@ import Student from './Student';
 import Faculty from './Faculty';
 import SystemSettings from './SystemSettings';
 import Calendar from './Calendar';
+import Archive from './Archive';
 
 // Register all controllers/elements used
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend, PieController);
@@ -153,7 +154,7 @@ export default function AdminDashboard(){
           user ? `${user.name} (${user.role})` : 'Loading...'
         ),
         React.createElement('nav', null,
-          ['Dashboard','Students','Faculty','Departments and Courses'].map(i =>
+          ['Dashboard','Students','Faculty','Departments and Courses','Archive'].map(i =>
             React.createElement('a', { key:i, href:'#', className: activeTab===i ? 'active': '', onClick:(e)=>{e.preventDefault(); setActiveTab(i);} }, i)
           )
         ),
@@ -222,7 +223,11 @@ export default function AdminDashboard(){
                   ? React.createElement(React.Fragment, null,
                       React.createElement(SystemSettings, { embed: true })
                     )
-                  : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, 'This section is under construction.'))
+                  : activeTab==='Archive'
+                    ? React.createElement(React.Fragment, null,
+                        React.createElement(Archive, { embed: true })
+                      )
+                    : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, 'This section is under construction.'))
         )
       )
     )

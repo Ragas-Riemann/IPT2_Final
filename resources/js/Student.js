@@ -196,12 +196,16 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Delete this student?")) return;
+    if (!window.confirm("Archive this student? The student will be moved to the archive and automatically deleted after 1 year.")) return;
     try {
-      await axios.delete(`/api/students/${id}`);
+      const response = await axios.delete(`/api/students/${id}`);
+      setMessage(response.data?.message || 'Student archived successfully');
+      setError('');
       fetchStudents();
     } catch (err) {
-      console.error(err);
+      const apiMsg = err?.response?.data?.message || err.message;
+      setError(typeof apiMsg === 'string' ? apiMsg : 'Failed to archive student');
+      setMessage('');
     }
   };
   const content = (
@@ -438,11 +442,11 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
                         } },
                       "Edit"
                     ),
-                    // Only admin can delete
+                    // Only admin can archive
                     (user && user.role === 'admin') && React.createElement(
                       "button",
                       { className: "delete-btn", onClick: () => handleDelete(s.id) },
-                      "Delete"
+                      "Archive"
                     )
                   )
                 ))

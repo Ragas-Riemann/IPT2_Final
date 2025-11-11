@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use App\Models\Student;
 use App\Models\User;
 
@@ -49,7 +51,7 @@ class StudentController extends Controller
             'middle_name' => 'nullable|string|max:255',
             'age'        => 'nullable|integer|min:0|max:150',
             'gender'     => 'nullable|string|in:Male,Female',
-            'email'      => 'nullable|email|max:255',
+            'email'      => 'required|email|max:255|unique:users,email',
             'department_id' => 'nullable|integer|exists:departments,id',
             'course_id'     => 'nullable|integer|exists:courses,id',
             'date_of_birth' => 'nullable|date',
@@ -175,24 +177,42 @@ class StudentController extends Controller
             }
         }
 
-        // If student is creating their own profile, ensure email matches
-        if ($user->role === 'student') {
-            // Check if profile already exists
-            $existingStudent = Student::where('email', $user->email)->first();
-            if ($existingStudent) {
-                return response()->json(['message' => 'Profile already exists. Please update your existing profile.'], 400);
-            }
-            
-            // Force email to match user's email
-            $validated['email'] = $user->email;
-        } elseif ($user->role !== 'admin') {
-            // Only admin and students (for their own profile) can create
+        // Only admin can create students through this endpoint
+        if ($user->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized. Only admin can add students.'], 403);
         }
 
-        $student = Student::create($validated);
+        // Use database transaction to ensure both user and student are created atomically
+        try {
+            return DB::transaction(function () use ($validated) {
+                // Create user account first
+                $fullName = trim($validated['first_name'] . ' ' . ($validated['middle_name'] ?? '') . ' ' . $validated['last_name']);
+                $fullName = preg_replace('/\s+/', ' ', $fullName); // Remove extra spaces
+                
+                $userAccount = User::create([
+                    'name' => $fullName,
+                    'email' => $validated['email'],
+                    'password' => Hash::make('123456'),
+                    'role' => 'student',
+                ]);
 
-        return response()->json($student, 201);
+                // Create student record
+                $student = Student::create($validated);
+
+                return response()->json([
+                    'student' => $student,
+                    'message' => 'Student added and account created successfully. Default password: 123456'
+                ], 201);
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle database errors (e.g., duplicate email)
+            if ($e->getCode() == 23000) { // Integrity constraint violation
+                return response()->json(['message' => 'Email already exists. Please use a different email.'], 400);
+            }
+            return response()->json(['message' => 'Failed to create student account: ' . $e->getMessage()], 500);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'An error occurred: ' . $e->getMessage()], 500);
+        }
     }
 
     public function show($id)

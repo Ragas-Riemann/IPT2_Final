@@ -136,17 +136,32 @@
             @csrf
 
             <div class="form-group">
-                <label for="name">Full Name</label>
+                <label for="first_name">First Name</label>
                 <input 
                     type="text" 
-                    id="name" 
-                    name="name" 
-                    value="{{ old('name') }}" 
+                    id="first_name" 
+                    name="first_name" 
+                    value="{{ old('first_name') }}" 
                     required 
                     autofocus
-                    placeholder="Enter your full name"
+                    placeholder="Enter your first name"
                 >
-                @error('name')
+                @error('first_name')
+                    <div class="error">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input 
+                    type="text" 
+                    id="last_name" 
+                    name="last_name" 
+                    value="{{ old('last_name') }}" 
+                    required 
+                    placeholder="Enter your last name"
+                >
+                @error('last_name')
                     <div class="error">{{ $message }}</div>
                 @enderror
             </div>

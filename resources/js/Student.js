@@ -127,19 +127,27 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
     e.preventDefault();
     setError("");
     setMessage("");
-    if (!firstName || !lastName) {
-      setError("Fill required fields");
+    if (!firstName || !lastName || !email) {
+      setError("Please fill in all required fields (First Name, Last Name, and Email)");
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
       return;
     }
 
     try {
       setLoading(true);
       if (editingId) {
-        await axios.put(`/api/students/${editingId}`, { first_name: firstName, last_name: lastName, age: age === "" ? null : Number(age), gender: gender || null, email: email || null, department_id: departmentId || null, course_id: courseId || null });
+        await axios.put(`/api/students/${editingId}`, { first_name: firstName, last_name: lastName, age: age === "" ? null : Number(age), gender: gender || null, email: email, department_id: departmentId || null, course_id: courseId || null });
         setMessage("Student updated");
       } else {
-        await axios.post("/api/students", { first_name: firstName, last_name: lastName, age: age === "" ? null : Number(age), gender: gender || null, email: email || null, department_id: departmentId || null, course_id: courseId || null });
-        setMessage("Student added");
+        const response = await axios.post("/api/students", { first_name: firstName, last_name: lastName, age: age === "" ? null : Number(age), gender: gender || null, email: email, department_id: departmentId || null, course_id: courseId || null });
+        // Use message from server if available, otherwise use default
+        setMessage(response.data?.message || "Student added and account created successfully. Default password: 123456");
       }
       setFirstName("");
       setLastName("");
@@ -188,15 +196,17 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
           message && React.createElement("div", { style: { background: '#ddffdd', color: '#064', padding: '8px', borderRadius: '6px' } }, message),
           React.createElement("input", {
             type: "text",
-            placeholder: "First Name",
+            placeholder: "First Name *",
             value: firstName,
             onChange: (e) => setFirstName(e.target.value),
+            required: true,
           }),
           React.createElement("input", {
             type: "text",
-            placeholder: "Last Name",
+            placeholder: "Last Name *",
             value: lastName,
             onChange: (e) => setLastName(e.target.value),
+            required: true,
           }),
           React.createElement("input", {
             type: "number",
@@ -220,9 +230,10 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
           ),
           React.createElement("input", {
             type: "email",
-            placeholder: "Email (optional)",
+            placeholder: "Email *",
             value: email,
             onChange: (e) => setEmail(e.target.value),
+            required: true,
           }),
           React.createElement(
             "select",

@@ -237,9 +237,21 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
   // Helper function to render profile field
   const renderProfileField = (label, value) => {
     if (!value) return null;
-    return React.createElement('div', { style: { display: 'grid', gridTemplateColumns: '150px 1fr', gap: '10px', marginBottom: '8px' } },
-      React.createElement('strong', { style: { color: '#333', fontWeight: '600' } }, `${label}:`),
-      React.createElement('span', { style: { color: '#555' } }, value)
+    return React.createElement('div', { 
+      style: { 
+        display: 'grid', 
+        gridTemplateColumns: '200px 1fr', 
+        gap: '20px', 
+        padding: '12px 16px',
+        marginBottom: '4px',
+        borderBottom: '1px solid #f0f0f0',
+        transition: 'background-color 0.2s'
+      },
+      onMouseEnter: (e) => e.currentTarget.style.backgroundColor = '#f9f9f9',
+      onMouseLeave: (e) => e.currentTarget.style.backgroundColor = 'transparent'
+    },
+      React.createElement('strong', { style: { color: '#1a1a1a', fontWeight: '600', fontSize: '14px' } }, `${label}:`),
+      React.createElement('span', { style: { color: '#555', fontSize: '14px', lineHeight: '1.5' } }, value)
     );
   };
 
@@ -281,10 +293,10 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
           null,
           React.createElement("h3", { style: { margin: '20px 0 10px 0', color: '#333', fontWeight: '600' } }, editingId ? "Edit Student" : "Register Student"),
           React.createElement(
-            "form",
-            { className: "post-form", onSubmit: handleSubmit },
-            error && React.createElement("div", { style: { background: '#ffdddd', color: '#900', padding: '8px', borderRadius: '6px' } }, error),
-            message && React.createElement("div", { style: { background: '#ddffdd', color: '#064', padding: '8px', borderRadius: '6px' } }, message),
+          "form",
+          { className: "post-form", onSubmit: handleSubmit },
+          error && React.createElement("div", { style: { background: '#ffdddd', color: '#900', padding: '8px', borderRadius: '6px' } }, error),
+          message && React.createElement("div", { style: { background: '#ddffdd', color: '#064', padding: '8px', borderRadius: '6px' } }, message),
           React.createElement("input", {
             type: "text",
             placeholder: "First Name *",
@@ -539,7 +551,7 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
                     )
                   )
                 ))
-                ) : (
+              ) : (
                   React.createElement("tr", null, React.createElement("td", { colSpan: user && (user.role === 'admin' || user.role === 'student') ? 10 : 9, style: { textAlign: 'center', padding: '20px' } }, searchTerm.trim() ? `No students found matching "${searchTerm}"` : "No students found."))
                 );
               })()
@@ -637,8 +649,9 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
             ) : selectedStudentProfile ? (
               React.createElement(React.Fragment, null,
                 // Personal Information
-                React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
-                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Personal Information'),
+                React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Personal Information'),
+                  React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' } },
                   renderProfileField('Name', `${selectedStudentProfile.first_name || ''} ${selectedStudentProfile.middle_name || ''} ${selectedStudentProfile.last_name || ''}`.trim() || 'Not set'),
                   renderProfileField('Email', selectedStudentProfile.email || 'Not set'),
                   renderProfileField('Age', selectedStudentProfile.age),
@@ -651,116 +664,143 @@ export default function Student({ embed = false, onDataChange = () => {} }) {
                   renderProfileField('Religion', selectedStudentProfile.religion),
                   renderProfileField('Citizenship', selectedStudentProfile.citizenship),
                   renderProfileField('Language Spoken', selectedStudentProfile.language_spoken)
+                  )
                 ),
                 // Address Information
-                (selectedStudentProfile.house_street_barangay || selectedStudentProfile.region || selectedStudentProfile.province || selectedStudentProfile.municipality) && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
-                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Address Information'),
+                (selectedStudentProfile.house_street_barangay || selectedStudentProfile.region || selectedStudentProfile.province || selectedStudentProfile.municipality) && React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Address Information'),
+                  React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' } },
                   renderProfileField('House/Street/Barangay', selectedStudentProfile.house_street_barangay),
                   renderProfileField('Region', selectedStudentProfile.region),
                   renderProfileField('Province', selectedStudentProfile.province),
                   renderProfileField('Municipality', selectedStudentProfile.municipality)
+                  )
                 ),
                 // Contact Information
-                (selectedStudentProfile.contact_number_phone || selectedStudentProfile.mobile_number) && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
-                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Contact Information'),
+                (selectedStudentProfile.contact_number_phone || selectedStudentProfile.mobile_number) && React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Contact Information'),
+                  React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' } },
                   renderProfileField('Contact Number (Phone)', selectedStudentProfile.contact_number_phone),
                   renderProfileField('Mobile Number', selectedStudentProfile.mobile_number)
+                  )
                 ),
                 // Academic Information
-                React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
-                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Academic Information'),
+                React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Academic Information'),
+                  React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' } },
                   renderProfileField('Department', selectedStudentProfile.department_id ? (departments.find(d => d.id === selectedStudentProfile.department_id)?.name || departments.find(d => d.id === selectedStudentProfile.department_id)?.code || `ID: ${selectedStudentProfile.department_id}`) : 'Not set'),
                   renderProfileField('Course', selectedStudentProfile.course_id ? (courses.find(c => c.id === selectedStudentProfile.course_id)?.name || `ID: ${selectedStudentProfile.course_id}`) : 'Not set'),
                   renderProfileField('Intended Degree Program', selectedStudentProfile.intended_degree_program),
                   renderProfileField('Is Working Student', selectedStudentProfile.is_working_student ? 'Yes' : (selectedStudentProfile.is_working_student === false ? 'No' : null)),
                   selectedStudentProfile.is_working_student && renderProfileField('Employer Name', selectedStudentProfile.employer_name),
                   selectedStudentProfile.is_working_student && renderProfileField('Employer Address', selectedStudentProfile.employer_address)
+                  )
                 ),
                 // Educational Background
-                (selectedStudentProfile.elementary_school_name || selectedStudentProfile.junior_high_school_name || selectedStudentProfile.senior_high_school_name || selectedStudentProfile.college_school_name) && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
-                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Educational Background'),
-                  selectedStudentProfile.elementary_school_name && React.createElement('div', { style: { marginBottom: '15px' } },
-                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'Elementary:'),
-                    renderProfileField('School Name', selectedStudentProfile.elementary_school_name),
-                    renderProfileField('Address', selectedStudentProfile.elementary_school_address),
-                    renderProfileField('Year Graduated', selectedStudentProfile.elementary_year_graduated),
-                    renderProfileField('School Type', selectedStudentProfile.elementary_school_type)
+                (selectedStudentProfile.elementary_school_name || selectedStudentProfile.junior_high_school_name || selectedStudentProfile.senior_high_school_name || selectedStudentProfile.college_school_name) && React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Educational Background'),
+                  selectedStudentProfile.elementary_school_name && React.createElement('div', { style: { marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '12px', color: '#667eea', fontSize: '16px', fontWeight: '700', paddingBottom: '8px', borderBottom: '1px solid #ddd' } }, 'Elementary:'),
+                    React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '6px', overflow: 'hidden' } },
+                      renderProfileField('School Name', selectedStudentProfile.elementary_school_name),
+                      renderProfileField('Address', selectedStudentProfile.elementary_school_address),
+                      renderProfileField('Year Graduated', selectedStudentProfile.elementary_year_graduated),
+                      renderProfileField('School Type', selectedStudentProfile.elementary_school_type)
+                    )
                   ),
-                  selectedStudentProfile.junior_high_school_name && React.createElement('div', { style: { marginBottom: '15px' } },
-                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'Junior High School:'),
-                    renderProfileField('School Name', selectedStudentProfile.junior_high_school_name),
-                    renderProfileField('Address', selectedStudentProfile.junior_high_school_address),
-                    renderProfileField('Year Graduated', selectedStudentProfile.junior_high_year_graduated),
-                    renderProfileField('School Type', selectedStudentProfile.junior_high_school_type)
+                  selectedStudentProfile.junior_high_school_name && React.createElement('div', { style: { marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '12px', color: '#667eea', fontSize: '16px', fontWeight: '700', paddingBottom: '8px', borderBottom: '1px solid #ddd' } }, 'Junior High School:'),
+                    React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '6px', overflow: 'hidden' } },
+                      renderProfileField('School Name', selectedStudentProfile.junior_high_school_name),
+                      renderProfileField('Address', selectedStudentProfile.junior_high_school_address),
+                      renderProfileField('Year Graduated', selectedStudentProfile.junior_high_year_graduated),
+                      renderProfileField('School Type', selectedStudentProfile.junior_high_school_type)
+                    )
                   ),
-                  selectedStudentProfile.senior_high_school_name && React.createElement('div', { style: { marginBottom: '15px' } },
-                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'Senior High School:'),
-                    renderProfileField('School Name', selectedStudentProfile.senior_high_school_name),
-                    renderProfileField('Address', selectedStudentProfile.senior_high_school_address),
-                    renderProfileField('Year Graduated', selectedStudentProfile.senior_high_year_graduated),
-                    renderProfileField('School Type', selectedStudentProfile.senior_high_school_type)
+                  selectedStudentProfile.senior_high_school_name && React.createElement('div', { style: { marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '12px', color: '#667eea', fontSize: '16px', fontWeight: '700', paddingBottom: '8px', borderBottom: '1px solid #ddd' } }, 'Senior High School:'),
+                    React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '6px', overflow: 'hidden' } },
+                      renderProfileField('School Name', selectedStudentProfile.senior_high_school_name),
+                      renderProfileField('Address', selectedStudentProfile.senior_high_school_address),
+                      renderProfileField('Year Graduated', selectedStudentProfile.senior_high_year_graduated),
+                      renderProfileField('School Type', selectedStudentProfile.senior_high_school_type)
+                    )
                   ),
-                  selectedStudentProfile.college_school_name && React.createElement('div', { style: { marginBottom: '15px' } },
-                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'College:'),
-                    renderProfileField('School Name', selectedStudentProfile.college_school_name),
-                    renderProfileField('Address', selectedStudentProfile.college_school_address),
-                    renderProfileField('Year Graduated', selectedStudentProfile.college_year_graduated),
-                    renderProfileField('School Type', selectedStudentProfile.college_school_type)
+                  selectedStudentProfile.college_school_name && React.createElement('div', { style: { marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '12px', color: '#667eea', fontSize: '16px', fontWeight: '700', paddingBottom: '8px', borderBottom: '1px solid #ddd' } }, 'College:'),
+                    React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '6px', overflow: 'hidden' } },
+                      renderProfileField('School Name', selectedStudentProfile.college_school_name),
+                      renderProfileField('Address', selectedStudentProfile.college_school_address),
+                      renderProfileField('Year Graduated', selectedStudentProfile.college_year_graduated),
+                      renderProfileField('School Type', selectedStudentProfile.college_school_type)
+                    )
                   )
                 ),
                 // Family Background
-                (selectedStudentProfile.mother_family_name || selectedStudentProfile.father_family_name || selectedStudentProfile.number_of_brothers || selectedStudentProfile.number_of_sisters) && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
-                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Family Background'),
-                  selectedStudentProfile.mother_family_name && React.createElement('div', { style: { marginBottom: '15px' } },
-                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'Mother:'),
-                    renderProfileField('Name', `${selectedStudentProfile.mother_family_name || ''} ${selectedStudentProfile.mother_given_name || ''} ${selectedStudentProfile.mother_middle_name || ''}`.trim()),
-                    renderProfileField('Occupation', selectedStudentProfile.mother_occupation),
-                    renderProfileField('Address', selectedStudentProfile.mother_home_address),
-                    renderProfileField('Town/City', selectedStudentProfile.mother_town_city),
-                    renderProfileField('Province', selectedStudentProfile.mother_province),
-                    renderProfileField('Contact Number', selectedStudentProfile.mother_contact_number),
-                    renderProfileField('Mobile Number', selectedStudentProfile.mother_mobile_number)
+                (selectedStudentProfile.mother_family_name || selectedStudentProfile.father_family_name || selectedStudentProfile.number_of_brothers || selectedStudentProfile.number_of_sisters) && React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Family Background'),
+                  selectedStudentProfile.mother_family_name && React.createElement('div', { style: { marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '12px', color: '#667eea', fontSize: '16px', fontWeight: '700', paddingBottom: '8px', borderBottom: '1px solid #ddd' } }, 'Mother:'),
+                    React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '6px', overflow: 'hidden' } },
+                      renderProfileField('Name', `${selectedStudentProfile.mother_family_name || ''} ${selectedStudentProfile.mother_given_name || ''} ${selectedStudentProfile.mother_middle_name || ''}`.trim()),
+                      renderProfileField('Occupation', selectedStudentProfile.mother_occupation),
+                      renderProfileField('Address', selectedStudentProfile.mother_home_address),
+                      renderProfileField('Town/City', selectedStudentProfile.mother_town_city),
+                      renderProfileField('Province', selectedStudentProfile.mother_province),
+                      renderProfileField('Contact Number', selectedStudentProfile.mother_contact_number),
+                      renderProfileField('Mobile Number', selectedStudentProfile.mother_mobile_number)
+                    )
                   ),
-                  selectedStudentProfile.father_family_name && React.createElement('div', { style: { marginBottom: '15px' } },
-                    React.createElement('strong', { style: { display: 'block', marginBottom: '8px', color: '#1a1a1a', fontSize: '16px', fontWeight: '600' } }, 'Father:'),
-                    renderProfileField('Name', `${selectedStudentProfile.father_family_name || ''} ${selectedStudentProfile.father_given_name || ''} ${selectedStudentProfile.father_middle_name || ''}`.trim()),
-                    renderProfileField('Occupation', selectedStudentProfile.father_occupation),
-                    renderProfileField('Address', selectedStudentProfile.father_home_address),
-                    renderProfileField('Town/City', selectedStudentProfile.father_town_city),
-                    renderProfileField('Province', selectedStudentProfile.father_province),
-                    renderProfileField('Contact Number', selectedStudentProfile.father_contact_number),
-                    renderProfileField('Mobile Number', selectedStudentProfile.father_mobile_number)
+                  selectedStudentProfile.father_family_name && React.createElement('div', { style: { marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' } },
+                    React.createElement('strong', { style: { display: 'block', marginBottom: '12px', color: '#667eea', fontSize: '16px', fontWeight: '700', paddingBottom: '8px', borderBottom: '1px solid #ddd' } }, 'Father:'),
+                    React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '6px', overflow: 'hidden' } },
+                      renderProfileField('Name', `${selectedStudentProfile.father_family_name || ''} ${selectedStudentProfile.father_given_name || ''} ${selectedStudentProfile.father_middle_name || ''}`.trim()),
+                      renderProfileField('Occupation', selectedStudentProfile.father_occupation),
+                      renderProfileField('Address', selectedStudentProfile.father_home_address),
+                      renderProfileField('Town/City', selectedStudentProfile.father_town_city),
+                      renderProfileField('Province', selectedStudentProfile.father_province),
+                      renderProfileField('Contact Number', selectedStudentProfile.father_contact_number),
+                      renderProfileField('Mobile Number', selectedStudentProfile.father_mobile_number)
+                    )
                   ),
-                  (selectedStudentProfile.number_of_brothers || selectedStudentProfile.number_of_sisters) && React.createElement('div', { style: { marginBottom: '15px' } },
-                    renderProfileField('Number of Brothers', selectedStudentProfile.number_of_brothers),
-                    renderProfileField('Number of Sisters', selectedStudentProfile.number_of_sisters)
+                  (selectedStudentProfile.number_of_brothers || selectedStudentProfile.number_of_sisters) && React.createElement('div', { style: { padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e0e0e0' } },
+                    React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '6px', overflow: 'hidden' } },
+                      renderProfileField('Number of Brothers', selectedStudentProfile.number_of_brothers),
+                      renderProfileField('Number of Sisters', selectedStudentProfile.number_of_sisters)
+                    )
                   )
                 ),
                 // Guardian Information
-                selectedStudentProfile.guardian_family_name && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
-                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Guardian Information'),
-                  renderProfileField('Name', `${selectedStudentProfile.guardian_family_name || ''} ${selectedStudentProfile.guardian_given_name || ''} ${selectedStudentProfile.guardian_middle_name || ''}`.trim()),
-                  renderProfileField('Relationship', selectedStudentProfile.guardian_relationship),
-                  renderProfileField('Address', selectedStudentProfile.guardian_home_address),
-                  renderProfileField('Contact Number', selectedStudentProfile.guardian_contact_number),
-                  renderProfileField('Mobile Number', selectedStudentProfile.guardian_mobile_number)
+                selectedStudentProfile.guardian_family_name && React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Guardian Information'),
+                  React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' } },
+                    renderProfileField('Name', `${selectedStudentProfile.guardian_family_name || ''} ${selectedStudentProfile.guardian_given_name || ''} ${selectedStudentProfile.guardian_middle_name || ''}`.trim()),
+                    renderProfileField('Relationship', selectedStudentProfile.guardian_relationship),
+                    renderProfileField('Address', selectedStudentProfile.guardian_home_address),
+                    renderProfileField('Contact Number', selectedStudentProfile.guardian_contact_number),
+                    renderProfileField('Mobile Number', selectedStudentProfile.guardian_mobile_number)
+                  )
                 ),
                 // Emergency Contact
-                selectedStudentProfile.emergency_contact_name && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
-                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Emergency Contact'),
-                  renderProfileField('Name', selectedStudentProfile.emergency_contact_name),
-                  renderProfileField('Contact Number', selectedStudentProfile.emergency_contact_number)
+                selectedStudentProfile.emergency_contact_name && React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Emergency Contact'),
+                  React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' } },
+                    renderProfileField('Name', selectedStudentProfile.emergency_contact_name),
+                    renderProfileField('Contact Number', selectedStudentProfile.emergency_contact_number)
+                  )
                 ),
                 // Additional Information
-                (selectedStudentProfile.is_indigenous_peoples_member || selectedStudentProfile.has_disability || selectedStudentProfile.is_single_parent_dependent || selectedStudentProfile.has_special_needs) && React.createElement('div', { style: { marginBottom: '20px', paddingBottom: '15px', borderBottom: '1px solid #e0e0e0' } },
-                  React.createElement('h3', { style: { marginBottom: '15px', color: '#1a1a1a', fontSize: '18px', fontWeight: '700' } }, 'Additional Information'),
-                  renderProfileField('Indigenous Peoples Member', selectedStudentProfile.is_indigenous_peoples_member ? 'Yes' : (selectedStudentProfile.is_indigenous_peoples_member === false ? 'No' : null)),
-                  selectedStudentProfile.is_indigenous_peoples_member && renderProfileField('Indigenous Tribe', selectedStudentProfile.indigenous_tribe),
-                  renderProfileField('Has Disability', selectedStudentProfile.has_disability ? 'Yes' : (selectedStudentProfile.has_disability === false ? 'No' : null)),
-                  selectedStudentProfile.has_disability && renderProfileField('Disability Specification', selectedStudentProfile.disability_specification),
-                  renderProfileField('Single Parent Dependent', selectedStudentProfile.is_single_parent_dependent ? 'Yes' : (selectedStudentProfile.is_single_parent_dependent === false ? 'No' : null)),
-                  renderProfileField('Has Special Needs', selectedStudentProfile.has_special_needs ? 'Yes' : (selectedStudentProfile.has_special_needs === false ? 'No' : null)),
-                  selectedStudentProfile.has_special_needs && renderProfileField('Special Needs Specification', selectedStudentProfile.special_needs_specification)
+                (selectedStudentProfile.is_indigenous_peoples_member || selectedStudentProfile.has_disability || selectedStudentProfile.is_single_parent_dependent || selectedStudentProfile.has_special_needs) && React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                  React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Additional Information'),
+                  React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' } },
+                    renderProfileField('Indigenous Peoples Member', selectedStudentProfile.is_indigenous_peoples_member ? 'Yes' : (selectedStudentProfile.is_indigenous_peoples_member === false ? 'No' : null)),
+                    selectedStudentProfile.is_indigenous_peoples_member && renderProfileField('Indigenous Tribe', selectedStudentProfile.indigenous_tribe),
+                    renderProfileField('Has Disability', selectedStudentProfile.has_disability ? 'Yes' : (selectedStudentProfile.has_disability === false ? 'No' : null)),
+                    selectedStudentProfile.has_disability && renderProfileField('Disability Specification', selectedStudentProfile.disability_specification),
+                    renderProfileField('Single Parent Dependent', selectedStudentProfile.is_single_parent_dependent ? 'Yes' : (selectedStudentProfile.is_single_parent_dependent === false ? 'No' : null)),
+                    renderProfileField('Has Special Needs', selectedStudentProfile.has_special_needs ? 'Yes' : (selectedStudentProfile.has_special_needs === false ? 'No' : null)),
+                    selectedStudentProfile.has_special_needs && renderProfileField('Special Needs Specification', selectedStudentProfile.special_needs_specification)
+                  )
                 ),
                 // Close button
                 React.createElement('div', { style: { marginTop: '20px', textAlign: 'center' } },

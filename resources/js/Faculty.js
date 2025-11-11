@@ -20,6 +20,9 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   const [message, setMessage] = useState('');
   const [user, setUser] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedFacultyProfile, setSelectedFacultyProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   useEffect(()=>{ fetchUser(); fetchAll(); fetchDepartments(); },[]);
 
@@ -116,6 +119,28 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
     }finally{ setLoading(false); }
   }
 
+  const handleViewProfile = async (facultyId) => {
+    setLoadingProfile(true);
+    setShowProfileModal(true);
+    try {
+      const res = await axios.get('/api/faculty');
+      const facultyList = res.data;
+      const facultyProfile = facultyList.find(f => f.id === facultyId);
+      if (facultyProfile) {
+        setSelectedFacultyProfile(facultyProfile);
+      } else {
+        setError('Faculty profile not found');
+        setShowProfileModal(false);
+      }
+    } catch (err) {
+      console.error('Failed to fetch faculty profile', err);
+      setError('Failed to load faculty profile');
+      setShowProfileModal(false);
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
+
   async function handleDelete(id){
     if(!window.confirm('Archive this faculty? The faculty will be moved to the archive and automatically deleted after 1 year.')) return;
     try{ 
@@ -133,6 +158,27 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   async function fetchDepartments(){
     try{ const res = await axios.get('/api/departments'); setDepartments(res.data); } catch(e){ console.error(e); }
   }
+
+  // Helper function to render profile field
+  const renderProfileField = (label, value) => {
+    if (!value) return null;
+    return React.createElement('div', { 
+      style: { 
+        display: 'grid', 
+        gridTemplateColumns: '200px 1fr', 
+        gap: '20px', 
+        padding: '12px 16px',
+        marginBottom: '4px',
+        borderBottom: '1px solid #f0f0f0',
+        transition: 'background-color 0.2s'
+      },
+      onMouseEnter: (e) => e.currentTarget.style.backgroundColor = '#f9f9f9',
+      onMouseLeave: (e) => e.currentTarget.style.backgroundColor = 'transparent'
+    },
+      React.createElement('strong', { style: { color: '#1a1a1a', fontWeight: '600', fontSize: '14px' } }, `${label}:`),
+      React.createElement('span', { style: { color: '#555', fontSize: '14px', lineHeight: '1.5' } }, value)
+    );
+  };
 
   const content = (
     React.createElement(React.Fragment, null,
@@ -270,6 +316,24 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
                   React.createElement('td', null, new Date(f.created_at).toLocaleString()),
                   // Only admin can edit/delete faculty
                   (user && user.role === 'admin') && React.createElement('td', null,
+                    // View Profile button - available for all authenticated users
+                    React.createElement(
+                      'button',
+                      { 
+                        onClick: () => handleViewProfile(f.id),
+                        style: { 
+                          padding: '6px 12px', 
+                          backgroundColor: '#10b981', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: '4px', 
+                          cursor: 'pointer',
+                          marginRight: '8px',
+                          fontSize: '13px'
+                        } 
+                      },
+                      'View Profile'
+                    ),
                     React.createElement('button', { onClick:()=>{ setEditingId(f.id); setFirstName(f.first_name); setLastName(f.last_name); setDateOfBirth(f.date_of_birth ?? ''); setAge(f.age ?? ''); setGender(f.gender ?? ''); setEmail(f.email ?? ''); setDepartmentId(f.department_id ?? ''); setShowForm(true); } }, 'Edit'),
                     React.createElement('button', { className:'delete-btn', onClick:()=>handleDelete(f.id) }, 'Archive')
                   )
@@ -278,6 +342,152 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
                   React.createElement('tr', null, React.createElement('td', { colSpan: user && user.role === 'admin' ? 10 : 9, style: { textAlign: 'center', padding: '20px' } }, searchTerm.trim() ? `No faculty found matching "${searchTerm}"` : 'No faculty found.'))
                 );
               })()
+            )
+          )
+        ),
+        // Profile Modal
+        showProfileModal && React.createElement(
+          'div',
+          {
+            style: {
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+              padding: '20px'
+            },
+            onClick: (e) => {
+              if (e.target === e.currentTarget) {
+                setShowProfileModal(false);
+                setSelectedFacultyProfile(null);
+              }
+            }
+          },
+          React.createElement(
+            'div',
+            {
+              style: {
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                maxWidth: '900px',
+                width: '100%',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                position: 'relative'
+              }
+            },
+            // Modal Header
+            React.createElement(
+              'div',
+              {
+                style: {
+                  padding: '20px',
+                  borderBottom: '1px solid #e0e0e0',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  position: 'sticky',
+                  top: 0,
+                  backgroundColor: 'white',
+                  zIndex: 10
+                }
+              },
+              React.createElement('h2', { style: { margin: 0, color: '#1a1a1a', fontWeight: '700' } }, 'Faculty Profile'),
+              React.createElement(
+                'button',
+                {
+                  onClick: () => {
+                    setShowProfileModal(false);
+                    setSelectedFacultyProfile(null);
+                  },
+                  style: {
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    color: '#666',
+                    padding: '0',
+                    width: '30px',
+                    height: '30px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }
+                },
+                '×'
+              )
+            ),
+            // Modal Content
+            React.createElement(
+              'div',
+              { style: { padding: '20px' } },
+              loadingProfile ? (
+                React.createElement('div', { style: { textAlign: 'center', padding: '40px' } },
+                  React.createElement('p', null, 'Loading profile...')
+                )
+              ) : selectedFacultyProfile ? (
+                React.createElement(React.Fragment, null,
+                  // Personal Information
+                  React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                    React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Personal Information'),
+                    React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' } },
+                      renderProfileField('Name', `${selectedFacultyProfile.first_name || ''} ${selectedFacultyProfile.last_name || ''}`.trim() || 'Not set'),
+                      renderProfileField('Email', selectedFacultyProfile.email || 'Not set'),
+                      renderProfileField('Age', selectedFacultyProfile.age),
+                      renderProfileField('Gender', selectedFacultyProfile.gender),
+                      renderProfileField('Date of Birth', selectedFacultyProfile.date_of_birth ? new Date(selectedFacultyProfile.date_of_birth).toLocaleDateString() : null)
+                    )
+                  ),
+                  // Academic Information
+                  React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                    React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Academic Information'),
+                    React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' } },
+                      renderProfileField('Department', selectedFacultyProfile.department_id ? (departments.find(d => d.id === selectedFacultyProfile.department_id)?.name || departments.find(d => d.id === selectedFacultyProfile.department_id)?.code || `ID: ${selectedFacultyProfile.department_id}`) : 'Not set')
+                    )
+                  ),
+                  // Account Information
+                  React.createElement('div', { style: { marginBottom: '30px', paddingBottom: '20px', borderBottom: '2px solid #e0e0e0' } },
+                    React.createElement('h3', { style: { marginBottom: '20px', color: '#1a1a1a', fontSize: '20px', fontWeight: '700', paddingBottom: '10px', borderBottom: '2px solid #667eea' } }, 'Account Information'),
+                    React.createElement('div', { style: { backgroundColor: '#ffffff', borderRadius: '8px', overflow: 'hidden' } },
+                      renderProfileField('Created At', selectedFacultyProfile.created_at ? new Date(selectedFacultyProfile.created_at).toLocaleString() : null),
+                      renderProfileField('Updated At', selectedFacultyProfile.updated_at ? new Date(selectedFacultyProfile.updated_at).toLocaleString() : null)
+                    )
+                  ),
+                  // Close button
+                  React.createElement('div', { style: { marginTop: '20px', textAlign: 'center' } },
+                    React.createElement(
+                      'button',
+                      {
+                        onClick: () => {
+                          setShowProfileModal(false);
+                          setSelectedFacultyProfile(null);
+                        },
+                        style: {
+                          padding: '10px 20px',
+                          backgroundColor: '#667eea',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px'
+                        }
+                      },
+                      'Close'
+                    )
+                  )
+                )
+              ) : (
+                React.createElement('div', { style: { textAlign: 'center', padding: '40px' } },
+                  React.createElement('p', null, 'No profile data available.')
+                )
+              )
             )
           )
         )

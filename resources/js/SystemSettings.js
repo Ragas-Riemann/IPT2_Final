@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../sass/Dashboard.scss';
 
-export default function SystemSettings({ embed = false }){
+export default function SystemSettings({ embed = false, onCoursesChange = () => {} }){
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
@@ -175,6 +175,7 @@ export default function SystemSettings({ embed = false }){
       setEditingCourseId(null);
       setShowCourseForm(false);
       await fetchCoursesByDepartment(selectedDepartment.id);
+      onCoursesChange(); // Notify dashboard of course change
     }catch(e){
       const apiMsg = e?.response?.data?.message || Object.values(e?.response?.data || {})?.[0] || e.message;
       setError(typeof apiMsg === 'string' ? apiMsg : 'Request failed');
@@ -193,7 +194,8 @@ export default function SystemSettings({ embed = false }){
       const response = await axios.delete(`/api/courses/${id}`); 
       setMessage(response.data?.message || 'Course archived successfully');
       setError('');
-      fetchCoursesByDepartment(selectedDepartment.id); 
+      fetchCoursesByDepartment(selectedDepartment.id);
+      onCoursesChange(); // Notify dashboard of course change
     }catch(e){ 
       const apiMsg = e?.response?.data?.message || e?.message || 'Failed to archive course';
       setError(typeof apiMsg === 'string' ? apiMsg : 'Failed to archive course');

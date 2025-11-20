@@ -59,6 +59,12 @@ Route::middleware('auth')->group(function () {
 // API routes
 Route::prefix('api')->middleware('auth')->group(function () {
     Route::get('/user', [UserController::class, 'index']);
+    Route::post('/user/change-password', [UserController::class, 'changePassword']);
+    
+    // Reset password routes (must come before apiResource)
+    Route::post('students/{id}/reset-password', [StudentController::class, 'resetPassword']);
+    Route::post('faculty/{id}/reset-password', [FacultyController::class, 'resetPassword']);
+    
     Route::apiResource('students', StudentController::class);
     Route::apiResource('faculty', FacultyController::class);
     Route::apiResource('departments', DepartmentController::class);

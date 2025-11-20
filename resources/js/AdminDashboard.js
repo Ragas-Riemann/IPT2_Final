@@ -6,6 +6,7 @@ import Faculty from './Faculty';
 import SystemSettings from './SystemSettings';
 import Calendar from './Calendar';
 import Archive from './Archive';
+import Settings from './Settings';
 
 // Register all controllers/elements used
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, ArcElement, Tooltip, Legend, PieController);
@@ -17,7 +18,9 @@ export default function AdminDashboard(){
   const [activeTab, setActiveTab] = React.useState('Dashboard');
   const [studentTotal, setStudentTotal] = React.useState(0);
   const [facultyTotal, setFacultyTotal] = React.useState(0);
+  const [courseTotal, setCourseTotal] = React.useState(0);
   const [user, setUser] = React.useState(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
 
   useEffect(() => {
     // Fetch current user
@@ -28,14 +31,14 @@ export default function AdminDashboard(){
   }, []);
 
   useEffect(() => {
-    // Bar chart: Students per Month (dynamic)
+    // Bar chart: Students per Academic Year (dynamic)
     if (barRef.current) {
       const bar = new Chart(barRef.current, {
         type: 'bar',
         data: {
           labels: [],
           datasets: [{
-            label: 'Students per Month',
+            label: 'Students per Academic Year',
             data: [],
             backgroundColor: '#3aa6d0',
             borderRadius: 6
@@ -47,11 +50,16 @@ export default function AdminDashboard(){
     }
 
   // Update pie chart based on faculty department counts
-  function updatePieFromFaculty(list){
+  function updatePieFromFaculty(list, departments = []){
     const counts = {};
     list.forEach(f => {
-      const dep = (f.department || 'Unassigned');
-      counts[dep] = (counts[dep] || 0) + 1;
+      if (f.department_id) {
+        const dept = departments.find(d => d.id === f.department_id);
+        const depName = dept ? dept.name : 'Unassigned';
+        counts[depName] = (counts[depName] || 0) + 1;
+      } else {
+        counts['Unassigned'] = (counts['Unassigned'] || 0) + 1;
+      }
     });
     const labels = Object.keys(counts);
     const data = labels.map(l => counts[l]);
@@ -97,37 +105,81 @@ export default function AdminDashboard(){
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/faculty');
-        if (!res.ok) return;
-        const list = await res.json();
-        setFacultyTotal(list.length);
-        updatePieFromFaculty(list);
+        const [facultyRes, deptRes] = await Promise.all([
+          fetch('/api/faculty'),
+          fetch('/api/departments')
+        ]);
+        if (!facultyRes.ok || !deptRes.ok) return;
+        const [facultyList, deptList] = await Promise.all([
+          facultyRes.json(),
+          deptRes.json()
+        ]);
+        setFacultyTotal(facultyList.length);
+        updatePieFromFaculty(facultyList, deptList);
       } catch (e) {
         console.warn('Failed to preload faculty', e);
       }
     })();
   }, []);
 
-  // Transform student list into last 6 months counts
+  // Fetch initial courses count
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/courses');
+        if (!res.ok) return;
+        const list = await res.json();
+        setCourseTotal(list.length);
+      } catch (e) {
+        console.warn('Failed to preload courses', e);
+      }
+    })();
+  }, []);
+
+  // Transform student list into academic year counts
   function updateBarFromStudents(students){
-    // Build last 6 months labels like '2025-10'
-    const months = [];
-    const now = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      months.push(key);
+    // Academic year typically runs from August to July
+    // Format: "2024-2025" for academic year starting in 2024
+    function getAcademicYear(date) {
+      const d = new Date(date);
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1; // 1-12
+      // If month is August (8) or later, it's the start of the academic year
+      // Otherwise, it belongs to the previous academic year
+      if (month >= 8) {
+        return `${year}-${year + 1}`;
+      } else {
+        return `${year - 1}-${year}`;
+      }
     }
-    const counts = Object.fromEntries(months.map(m=>[m,0]));
-    students.forEach(s=>{
+
+    // Get all unique academic years from students
+    const academicYears = new Set();
+    students.forEach(s => {
       const dt = new Date(s.created_at || s.updated_at || Date.now());
-      const key = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
-      if (key in counts) counts[key] += 1;
+      academicYears.add(getAcademicYear(dt));
     });
+
+    // Sort academic years (convert to array and sort)
+    const sortedYears = Array.from(academicYears).sort((a, b) => {
+      // Compare by starting year
+      const yearA = parseInt(a.split('-')[0]);
+      const yearB = parseInt(b.split('-')[0]);
+      return yearA - yearB;
+    });
+
+    // Count students per academic year
+    const counts = Object.fromEntries(sortedYears.map(y => [y, 0]));
+    students.forEach(s => {
+      const dt = new Date(s.created_at || s.updated_at || Date.now());
+      const acadYear = getAcademicYear(dt);
+      if (acadYear in counts) counts[acadYear] += 1;
+    });
+
     const bar = charts.current.find(c => c.config.type === 'bar');
     if (bar){
-      bar.data.labels = months;
-      bar.data.datasets[0].data = months.map(m=>counts[m]);
+      bar.data.labels = sortedYears;
+      bar.data.datasets[0].data = sortedYears.map(y => counts[y]);
       bar.update();
     }
   }
@@ -148,26 +200,56 @@ export default function AdminDashboard(){
     return (
       React.createElement('div', { className: 'dashboard' },
       // Sidebar
-      React.createElement('aside', { className:'sidebar' },
-        React.createElement('h2', null, 'FSUU Admin'),
+      React.createElement('aside', { 
+        className: `sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`
+      },
+        React.createElement('div', { className: 'sidebar-header' },
+          React.createElement('h2', null, 'FSUU Admin'),
+          React.createElement('button', {
+            className: 'sidebar-toggle',
+            onClick: () => setIsSidebarCollapsed(!isSidebarCollapsed),
+            title: isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'
+          }, isSidebarCollapsed ? '→' : '←')
+        ),
         React.createElement('div', { className: 'user-info' },
           user ? `${user.name} (${user.role})` : 'Loading...'
         ),
         React.createElement('nav', null,
-          ['Dashboard','Students','Faculty','Departments and Courses','Archive'].map(i =>
-            React.createElement('a', { key:i, href:'#', className: activeTab===i ? 'active': '', onClick:(e)=>{e.preventDefault(); setActiveTab(i);} }, i)
+          [
+            { name: 'Dashboard', icon: '📊' },
+            { name: 'Students', icon: '👥' },
+            { name: 'Faculty', icon: '👨‍🏫' },
+            { name: 'Departments and Courses', icon: '📚' },
+            { name: 'Archive', icon: '🗄️' },
+            { name: 'Settings', icon: '⚙️' }
+          ].map(item =>
+            React.createElement('a', { 
+              key: item.name, 
+              href:'#', 
+              className: activeTab===item.name ? 'active': '', 
+              onClick:(e)=>{e.preventDefault(); setActiveTab(item.name);},
+              title: isSidebarCollapsed ? item.name : ''
+            }, 
+              React.createElement('span', { className: 'nav-icon' }, item.icon),
+              React.createElement('span', { className: 'nav-text' }, item.name)
+            )
           )
         ),
         React.createElement('button', { 
           onClick: handleLogout,
-          className: 'logout-btn'
-        }, 'Logout')
+          className: 'logout-btn',
+          title: isSidebarCollapsed ? 'Logout' : ''
+        }, 
+          React.createElement('span', { className: 'logout-icon' }, '🚪'),
+          React.createElement('span', { className: 'nav-text' }, 'Logout')
+        )
       ),
       // Main
-      React.createElement('div', { className:'main' },
+      React.createElement('div', { 
+        className: `main ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`
+      },
         React.createElement('header', { className:'topbar' },
-          React.createElement('h1', null, 'Admin Dashboard - Student and Faculty Profile Management System'),
-          React.createElement('div', { className:'profile' }, React.createElement('img', { alt:'profile' }))
+          React.createElement('h1', null, 'Admin Dashboard - Student and Faculty Profile Management System')
         ),
         React.createElement('section', { className:'content' },
           activeTab==='Dashboard'
@@ -175,33 +257,27 @@ export default function AdminDashboard(){
                 // KPI cards
                 React.createElement('div', { className:'kpis' },
                   [
-                    { t:'Total Students', v:String(studentTotal), d:'+3.2% since last month' },
-                    { t:'Total Faculty', v:String(facultyTotal), d:'+0.8% since last month' },
-                    { t:'Active Courses', v:'128', d:'+1.1% since last month' },
+                    { t:'Total Students', v:String(studentTotal) },
+                    { t:'Total Faculty', v:String(facultyTotal) },
+                    { t:'Total Courses', v:String(courseTotal) },
                   ].map((k)=> React.createElement('div', { key:k.t, className:'kpi-card' },
                     React.createElement('div', { className:'kpi-title' }, k.t),
-                    React.createElement('div', { className:'kpi-value' }, k.v),
-                    React.createElement('span', { className:'trend' }, k.d)
+                    React.createElement('div', { className:'kpi-value' }, k.v)
                   ))
                 ),
                 React.createElement('div', { className:'divider' }),
-                // Lower panels
+                // Charts panel
                 React.createElement('div', { className:'panels' },
                   React.createElement('div', { className:'panel' },
-                    React.createElement('div', { className:'panel-title' }, 'Attendance Rate'),
-                    React.createElement('div', { className:'kpi-value' }, '92.5%'),
-                    React.createElement('span', { className:'trend' }, '+0.6% since last month')
-                  ),
-                  React.createElement('div', { className:'panel' },
-                    React.createElement('div', { className:'panel-title' }, 'Chart'),
+                    React.createElement('div', { className:'panel-title' }, 'Charts'),
                     React.createElement('div', { className:'charts' },
                       React.createElement('div', { className:'chartBox' },
-                        React.createElement('small', { className:'muted' }, 'Number of Students per Month'),
-                        React.createElement('canvas', { ref: barRef, height: 160 })
+                        React.createElement('small', { className:'muted' }, 'Number of Students per Academic Year'),
+                        React.createElement('canvas', { ref: barRef, height: 200 })
                       ),
                       React.createElement('div', { className:'chartBox' },
                         React.createElement('small', { className:'muted' }, 'Number of Faculty per Department'),
-                        React.createElement('canvas', { ref: pieRef, height: 160 })
+                        React.createElement('canvas', { ref: pieRef, height: 200 })
                       )
                     )
                   )
@@ -217,17 +293,48 @@ export default function AdminDashboard(){
                 )
               : activeTab==='Faculty'
                 ? React.createElement(React.Fragment, null,
-                    React.createElement(Faculty, { embed: true, onDataChange: (list)=>{ setFacultyTotal(list.length); updatePieFromFaculty(list);} })
+                    React.createElement(Faculty, { 
+                      embed: true, 
+                      onDataChange: async (list)=>{ 
+                        setFacultyTotal(list.length); 
+                        try {
+                          const deptRes = await fetch('/api/departments');
+                          if (deptRes.ok) {
+                            const deptList = await deptRes.json();
+                            updatePieFromFaculty(list, deptList);
+                          }
+                        } catch (e) {
+                          console.warn('Failed to fetch departments for pie chart', e);
+                        }
+                      }
+                    })
                   )
                 : activeTab==='Departments and Courses'
                   ? React.createElement(React.Fragment, null,
-                      React.createElement(SystemSettings, { embed: true })
+                      React.createElement(SystemSettings, { 
+                        embed: true,
+                        onCoursesChange: async () => {
+                          try {
+                            const res = await fetch('/api/courses');
+                            if (res.ok) {
+                              const list = await res.json();
+                              setCourseTotal(list.length);
+                            }
+                          } catch (e) {
+                            console.warn('Failed to update course count', e);
+                          }
+                        }
+                      })
                     )
                   : activeTab==='Archive'
                     ? React.createElement(React.Fragment, null,
                         React.createElement(Archive, { embed: true })
                       )
-                    : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, 'This section is under construction.'))
+                    : activeTab==='Settings'
+                      ? React.createElement(React.Fragment, null,
+                          React.createElement(Settings, { embed: true })
+                        )
+                      : React.createElement('div', { className: 'empty-state' }, React.createElement('p', null, 'This section is under construction.'))
         )
       )
     )

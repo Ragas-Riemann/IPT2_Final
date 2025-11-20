@@ -6,64 +6,134 @@
   background: $dashboard-bg;
   color: $dashboard-text;
   font-family: $font-family-sans-serif;
+  position: relative;
+  overflow-x: hidden;
 
   .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
     width: 260px;
-    background: $dashboard-sidebar;
-    padding: $spacing-xl;
-    border-right: 1px solid $dashboard-border;
+    background: #1e293b;
+    padding: $spacing-lg;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     flex-direction: column;
-    box-shadow: $shadow-lg;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    transition: width 0.3s ease;
+    overflow: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
 
-    h2 {
+    &::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+    }
+
+    &.collapsed {
+      width: 80px;
+      padding: $spacing-lg $spacing-md;
+    }
+
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       margin-bottom: $spacing-xl;
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: $dashboard-text;
-      letter-spacing: -0.025em;
+      padding-bottom: $spacing-md;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+      h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: white;
+        margin: 0;
+        white-space: nowrap;
+      }
+
+      .sidebar-toggle {
+        background: transparent;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: $spacing-xs;
+        font-size: 1.25rem;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s ease;
+        border-radius: $radius-md;
+        flex-shrink: 0;
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+        }
+      }
     }
 
     .user-info {
       padding: $spacing-md;
       margin-bottom: $spacing-lg;
       background: rgba(255, 255, 255, 0.05);
-      border-radius: $radius-lg;
+      border-radius: $radius-md;
       font-size: 0.875rem;
-      color: $dashboard-text-secondary;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.8);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     nav {
       display: flex;
       flex-direction: column;
-      gap: $spacing-sm;
+      gap: $spacing-xs;
       flex: 1;
+      margin-bottom: $spacing-lg;
 
       a {
         padding: $spacing-md $spacing-lg;
-        background: rgba(255, 255, 255, 0.05);
-        color: $dashboard-text-secondary;
+        color: rgba(255, 255, 255, 0.7);
         text-decoration: none;
-        border-radius: $radius-lg;
+        border-radius: $radius-md;
         transition: all 0.2s ease;
         font-weight: 500;
-        border: 1px solid transparent;
         display: flex;
         align-items: center;
+        gap: $spacing-md;
+        font-size: 0.9rem;
+
+        .nav-icon {
+          font-size: 1.25rem;
+          flex-shrink: 0;
+          width: 24px;
+          text-align: center;
+          display: none;
+        }
+
+        .nav-text {
+          white-space: nowrap;
+        }
 
         &:hover {
           background: rgba(255, 255, 255, 0.1);
-          color: $dashboard-text;
-          transform: translateX(4px);
-          border-color: rgba(255, 255, 255, 0.1);
+          color: white;
         }
 
         &.active {
           background: $primary-600;
           color: white;
-          box-shadow: $shadow-md;
-          border-color: $primary-500;
           font-weight: 600;
         }
       }
@@ -75,21 +145,79 @@
       background: $error;
       color: white;
       border: none;
-      border-radius: $radius-lg;
+      border-radius: $radius-md;
       cursor: pointer;
       font-weight: 600;
       font-size: 0.875rem;
-      transition: all 0.2s ease;
-      box-shadow: $shadow-sm;
+      transition: background 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: $spacing-sm;
+
+      .logout-icon {
+        font-size: 1.125rem;
+        flex-shrink: 0;
+        display: none;
+      }
+
+      .nav-text {
+        white-space: nowrap;
+      }
 
       &:hover {
         background: darken($error, 10%);
-        transform: translateY(-1px);
-        box-shadow: $shadow-md;
+      }
+    }
+
+    // Collapsed state styles
+    &.collapsed {
+      .sidebar-header {
+        justify-content: center;
+        
+        h2 {
+          display: none;
+        }
       }
 
-      &:active {
-        transform: translateY(0);
+      .user-info {
+        display: none;
+      }
+
+      .nav-text {
+        display: none;
+      }
+
+      nav a {
+        justify-content: center;
+        padding: $spacing-md;
+
+        .nav-icon {
+          display: block;
+        }
+      }
+
+      .logout-btn {
+        padding: $spacing-md;
+        
+        .nav-text {
+          display: none;
+        }
+
+        .logout-icon {
+          display: block;
+        }
+      }
+    }
+
+    // Expanded state - show text, hide icons
+    &:not(.collapsed) {
+      nav a .nav-icon {
+        display: none;
+      }
+
+      .logout-btn .logout-icon {
+        display: none;
       }
     }
   }
@@ -99,22 +227,45 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    margin-left: 260px;
+    width: calc(100% - 260px);
+    transition: margin-left 0.3s ease, width 0.3s ease;
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+
+    &.sidebar-collapsed {
+      margin-left: 80px;
+      width: calc(100% - 80px);
+    }
 
     .topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: $dashboard-sidebar;
+      background: white;
       padding: $spacing-lg $spacing-xl;
-      border-bottom: 1px solid $dashboard-border;
+      padding-left: $spacing-xl;
+      border-bottom: 1px solid $gray-200;
       box-shadow: $shadow-sm;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-left: 0;
+      width: 100%;
+      box-sizing: border-box;
 
       h1 {
         font-size: 1.5rem;
         font-weight: 700;
-        color: $dashboard-text;
+        color: $gray-900;
         margin: 0;
         letter-spacing: -0.025em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-left: 0;
       }
 
       .profile {
@@ -133,6 +284,7 @@
       padding: $spacing-xl;
       overflow-y: auto;
       background: $gray-50;
+      min-height: calc(100vh - 80px);
 
       .card {
         background: $dashboard-card;
@@ -451,6 +603,52 @@
   margin-top: $spacing-lg;
 }
 
+// Welcome card styling
+.welcome-card {
+  background: $dashboard-card;
+  color: $gray-900;
+  border-radius: $radius-xl;
+  padding: $spacing-xl;
+  border: 1px solid $gray-200;
+  box-shadow: $shadow-md;
+  transition: all 0.2s ease;
+
+  &:hover {
+    box-shadow: $shadow-lg;
+    transform: translateY(-2px);
+  }
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $gray-900;
+    margin: 0 0 $spacing-md 0;
+    letter-spacing: -0.025em;
+  }
+
+  p {
+    font-size: 0.95rem;
+    color: $gray-600;
+    line-height: 1.6;
+    margin: 0;
+  }
+}
+
+// Empty state styling
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+
+  p {
+    color: $gray-500;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+}
+
 // Alert/Message styles
 .alert {
   padding: $spacing-md $spacing-lg;
@@ -482,7 +680,23 @@
 @media (max-width: 992px) {
   .dashboard {
     .sidebar {
-      display: none;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+
+      &.collapsed {
+        transform: translateX(0);
+        width: 80px;
+      }
+    }
+
+    .main {
+      margin-left: 0 !important;
+      width: 100% !important;
+
+      &.sidebar-collapsed {
+        margin-left: 0 !important;
+        width: 100% !important;
+      }
     }
 
     .panels {

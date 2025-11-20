@@ -136,8 +136,7 @@ export default function Dashboard(){
       // Main
       React.createElement('div', { className:'main' },
         React.createElement('header', { className:'topbar' },
-          React.createElement('h1', null, 'Student and Faculty Profile Management System'),
-          React.createElement('div', { className:'profile' }, React.createElement('img', { alt:'profile' }))
+          React.createElement('h1', null, 'Student and Faculty Profile Management System')
         ),
         React.createElement('section', { className:'content' },
           activeTab==='Dashboard'

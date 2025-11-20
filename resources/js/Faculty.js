@@ -23,6 +23,7 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [selectedFacultyProfile, setSelectedFacultyProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
 
   useEffect(()=>{ fetchUser(); fetchAll(); fetchDepartments(); },[]);
 
@@ -30,6 +31,29 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
     // refetch list when filter changes
     fetchAll();
   }, [filterDepartmentId]);
+
+  // Close action menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openActionMenuId !== null) {
+        // Check if click is outside the dropdown menu and button
+        const target = event.target;
+        const isClickInsideMenu = target.closest('[data-action-menu]');
+        const isClickOnButton = target.closest('[data-action-button]');
+        
+        if (!isClickInsideMenu && !isClickOnButton) {
+          setOpenActionMenuId(null);
+        }
+      }
+    };
+    if (openActionMenuId !== null) {
+      // Use a small delay to allow button click to process first
+      setTimeout(() => {
+        document.addEventListener('click', handleClickOutside);
+      }, 0);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openActionMenuId]);
 
   // Calculate age from date of birth
   const calculateAge = (dateOfBirth) => {
@@ -138,6 +162,22 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
       setShowProfileModal(false);
     } finally {
       setLoadingProfile(false);
+    }
+  };
+
+  const handleResetPassword = async (facultyId, facultyEmail) => {
+    if (!window.confirm(`Reset password for ${facultyEmail}? The password will be reset to the default password (123456).`)) return;
+    try {
+      setLoading(true);
+      const response = await axios.post(`/api/faculty/${facultyId}/reset-password`);
+      setMessage(response.data?.message || 'Password reset successfully. Default password: 123456');
+      setError('');
+    } catch (e) {
+      const apiMsg = e?.response?.data?.message || e.message;
+      setError(typeof apiMsg === 'string' ? apiMsg : 'Failed to reset password');
+      setMessage('');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -287,8 +327,28 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
           )
         ),
         loading ? React.createElement('p', null, 'Loading…') : (
-          React.createElement('table', null,
-            React.createElement('thead', null, React.createElement('tr', null, ['ID','First Name','Last Name','Age','Gender','Email','Department Code','Created At', user && user.role === 'admin' ? 'Actions' : ''].filter(h => h).map(h=> React.createElement('th', { key:h }, h)))),
+          React.createElement(
+            'div',
+            { style: { overflowX: 'auto', width: '100%' } },
+            React.createElement('table', { style: { width: '100%', minWidth: '1000px', tableLayout: 'auto', borderCollapse: 'collapse' } },
+              React.createElement('thead', null, React.createElement('tr', null, ['ID','First Name','Last Name','Age','Gender','Email','Department Code','Created At', user && user.role === 'admin' ? 'Actions' : ''].filter(h => h).map(h=> 
+                React.createElement('th', { 
+                  key:h, 
+                  style: { 
+                    padding: '12px 8px',
+                    textAlign: 'left',
+                    borderBottom: '2px solid #e0e0e0',
+                    whiteSpace: 'nowrap',
+                    ...(h === 'ID' ? { width: '50px', minWidth: '50px' } : {}),
+                    ...(h === 'Age' ? { width: '60px', minWidth: '60px' } : {}),
+                    ...(h === 'Gender' ? { width: '80px', minWidth: '80px' } : {}),
+                    ...(h === 'Email' ? { width: '200px', minWidth: '200px' } : {}),
+                    ...(h === 'Department Code' ? { width: '150px', minWidth: '150px' } : {}),
+                    ...(h === 'Created At' ? { width: '180px', minWidth: '180px' } : {}),
+                    ...(h === 'Actions' ? { width: '80px', minWidth: '80px', textAlign: 'center' } : {})
+                  } 
+                }, h)
+              ))),
             React.createElement('tbody', null,
               (() => {
                 // Filter faculty based on search term (case-insensitive)
@@ -306,43 +366,205 @@ export default function Faculty({ embed = false, onDataChange = () => {} }){
                 }
                 return filteredFaculty.length > 0 ? filteredFaculty.map(f=> (
                 React.createElement('tr', { key:f.id },
-                  React.createElement('td', null, f.id),
-                  React.createElement('td', null, f.first_name),
-                  React.createElement('td', null, f.last_name),
-                  React.createElement('td', null, f.age ?? ''),
-                  React.createElement('td', null, f.gender ?? ''),
-                  React.createElement('td', null, f.email ?? ''),
-                  React.createElement('td', null, f.department_id ? (departments.find(d => d.id === f.department_id)?.code || f.department_id) : ''),
-                  React.createElement('td', null, new Date(f.created_at).toLocaleString()),
+                  React.createElement('td', { style: { padding: '10px 8px', whiteSpace: 'nowrap' } }, f.id),
+                  React.createElement('td', { style: { padding: '10px 8px', whiteSpace: 'nowrap' } }, f.first_name),
+                  React.createElement('td', { style: { padding: '10px 8px', whiteSpace: 'nowrap' } }, f.last_name),
+                  React.createElement('td', { style: { padding: '10px 8px', whiteSpace: 'nowrap', textAlign: 'center' } }, f.age ?? ''),
+                  React.createElement('td', { style: { padding: '10px 8px', whiteSpace: 'nowrap' } }, f.gender ?? ''),
+                  React.createElement('td', { style: { padding: '10px 8px', whiteSpace: 'nowrap' } }, f.email ?? ''),
+                  React.createElement('td', { style: { padding: '10px 8px', whiteSpace: 'nowrap' } }, f.department_id ? (departments.find(d => d.id === f.department_id)?.code || f.department_id) : ''),
+                  React.createElement('td', { style: { padding: '10px 8px', whiteSpace: 'nowrap' } }, new Date(f.created_at).toLocaleString()),
                   // Only admin can edit/delete faculty
-                  (user && user.role === 'admin') && React.createElement('td', null,
-                    // View Profile button - available for all authenticated users
+                  (user && user.role === 'admin') && React.createElement('td', { style: { position: 'relative', padding: '10px 8px', whiteSpace: 'nowrap', textAlign: 'center' } },
                     React.createElement(
                       'button',
-                      { 
-                        onClick: () => handleViewProfile(f.id),
-                        style: { 
-                          padding: '6px 12px', 
-                          backgroundColor: '#10b981', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '4px', 
+                      {
+                        'data-action-button': true,
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setOpenActionMenuId(openActionMenuId === f.id ? null : f.id);
+                        },
+                        style: {
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '50%',
+                          backgroundColor: '#667eea',
+                          color: 'white',
+                          border: 'none',
                           cursor: 'pointer',
-                          marginRight: '8px',
-                          fontSize: '13px'
-                        } 
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '18px',
+                          fontWeight: 'bold',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                          transition: 'all 0.2s',
+                          position: 'relative',
+                          zIndex: 1001
+                        },
+                        onMouseEnter: (e) => {
+                          e.currentTarget.style.backgroundColor = '#5568d3';
+                          e.currentTarget.style.transform = 'scale(1.1)';
+                        },
+                        onMouseLeave: (e) => {
+                          e.currentTarget.style.backgroundColor = '#667eea';
+                          e.currentTarget.style.transform = 'scale(1)';
+                        }
                       },
-                      'View Profile'
+                      '⋮'
                     ),
-                    React.createElement('button', { onClick:()=>{ setEditingId(f.id); setFirstName(f.first_name); setLastName(f.last_name); setDateOfBirth(f.date_of_birth ?? ''); setAge(f.age ?? ''); setGender(f.gender ?? ''); setEmail(f.email ?? ''); setDepartmentId(f.department_id ?? ''); setShowForm(true); } }, 'Edit'),
-                    React.createElement('button', { className:'delete-btn', onClick:()=>handleDelete(f.id) }, 'Archive')
+                    // Dropdown menu
+                    openActionMenuId === f.id && React.createElement(
+                      'div',
+                      {
+                        'data-action-menu': true,
+                        style: {
+                          position: 'absolute',
+                          top: '40px',
+                          right: '0',
+                          backgroundColor: 'white',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          zIndex: 1002,
+                          minWidth: '160px',
+                          padding: '8px 0',
+                          border: '1px solid #e0e0e0'
+                        },
+                        onClick: (e) => e.stopPropagation()
+                      },
+                      // View Profile button
+                      React.createElement(
+                        'button',
+                        {
+                          onClick: () => {
+                            handleViewProfile(f.id);
+                            setOpenActionMenuId(null);
+                          },
+                          style: {
+                            width: '100%',
+                            padding: '10px 16px',
+                            backgroundColor: 'transparent',
+                            color: '#333',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'background-color 0.2s'
+                          },
+                          onMouseEnter: (e) => e.currentTarget.style.backgroundColor = '#f5f5f5',
+                          onMouseLeave: (e) => e.currentTarget.style.backgroundColor = 'transparent'
+                        },
+                        React.createElement('span', { style: { color: '#10b981', fontSize: '16px' } }, '👁️'),
+                        'View Profile'
+                      ),
+                      // Edit button
+                      React.createElement(
+                        'button',
+                        {
+                          onClick: () => {
+                            setEditingId(f.id);
+                            setFirstName(f.first_name);
+                            setLastName(f.last_name);
+                            setDateOfBirth(f.date_of_birth ?? '');
+                            setAge(f.age ?? '');
+                            setGender(f.gender ?? '');
+                            setEmail(f.email ?? '');
+                            setDepartmentId(f.department_id ?? '');
+                            setShowForm(true);
+                            setOpenActionMenuId(null);
+                          },
+                          style: {
+                            width: '100%',
+                            padding: '10px 16px',
+                            backgroundColor: 'transparent',
+                            color: '#333',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'background-color 0.2s'
+                          },
+                          onMouseEnter: (e) => e.currentTarget.style.backgroundColor = '#f5f5f5',
+                          onMouseLeave: (e) => e.currentTarget.style.backgroundColor = 'transparent'
+                        },
+                        React.createElement('span', { style: { color: '#667eea', fontSize: '16px' } }, '✏️'),
+                        'Edit'
+                      ),
+                      // Reset Password button
+                      React.createElement(
+                        'button',
+                        {
+                          onClick: () => {
+                            handleResetPassword(f.id, f.email);
+                            setOpenActionMenuId(null);
+                          },
+                          style: {
+                            width: '100%',
+                            padding: '10px 16px',
+                            backgroundColor: 'transparent',
+                            color: '#333',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'background-color 0.2s'
+                          },
+                          onMouseEnter: (e) => e.currentTarget.style.backgroundColor = '#f5f5f5',
+                          onMouseLeave: (e) => e.currentTarget.style.backgroundColor = 'transparent'
+                        },
+                        React.createElement('span', { style: { color: '#f59e0b', fontSize: '16px' } }, '🔑'),
+                        'Reset Password'
+                      ),
+                      // Archive button
+                      React.createElement(
+                        'button',
+                        {
+                          onClick: () => {
+                            handleDelete(f.id);
+                            setOpenActionMenuId(null);
+                          },
+                          style: {
+                            width: '100%',
+                            padding: '10px 16px',
+                            backgroundColor: 'transparent',
+                            color: '#dc2626',
+                            border: 'none',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'background-color 0.2s',
+                            borderTop: '1px solid #e0e0e0',
+                            marginTop: '4px',
+                            paddingTop: '10px'
+                          },
+                          onMouseEnter: (e) => e.currentTarget.style.backgroundColor = '#fee',
+                          onMouseLeave: (e) => e.currentTarget.style.backgroundColor = 'transparent'
+                        },
+                        React.createElement('span', { style: { color: '#dc2626', fontSize: '16px' } }, '🗄️'),
+                        'Archive'
+                      )
+                    )
                   )
                 )
                 )) : (
-                  React.createElement('tr', null, React.createElement('td', { colSpan: user && user.role === 'admin' ? 10 : 9, style: { textAlign: 'center', padding: '20px' } }, searchTerm.trim() ? `No faculty found matching "${searchTerm}"` : 'No faculty found.'))
+                  React.createElement('tr', null, React.createElement('td', { colSpan: user && user.role === 'admin' ? 9 : 8, style: { textAlign: 'center', padding: '20px' } }, searchTerm.trim() ? `No faculty found matching "${searchTerm}"` : 'No faculty found.'))
                 );
               })()
             )
+          )
           )
         ),
         // Profile Modal

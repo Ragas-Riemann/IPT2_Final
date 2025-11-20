@@ -408,6 +408,35 @@ class StudentController extends Controller
         return response()->json($student, 200);
     }
 
+    public function resetPassword($id)
+    {
+        $user = Auth::user();
+        
+        // Only admin can reset passwords
+        if ($user->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized. Only admin can reset passwords.'], 403);
+        }
+
+        $student = Student::find($id);
+        if (!$student) {
+            return response()->json(['message' => 'Student not found.'], 404);
+        }
+
+        // Find the user account associated with this student
+        $userAccount = User::where('email', $student->email)->first();
+        if (!$userAccount) {
+            return response()->json(['message' => 'User account not found for this student.'], 404);
+        }
+
+        // Reset password to default
+        $userAccount->password = Hash::make('123456');
+        $userAccount->save();
+
+        return response()->json([
+            'message' => 'Password reset successfully. Default password: 123456'
+        ], 200);
+    }
+
     public function destroy($id)
     {
         $user = Auth::user();
